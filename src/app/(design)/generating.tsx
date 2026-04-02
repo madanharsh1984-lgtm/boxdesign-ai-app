@@ -1,26 +1,20 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  SafeAreaView,
-  Animated,
-  Easing,
-  Dimensions,
-  TouchableOpacity,
-  Alert,
-  StatusBar,
+  View, Text, StyleSheet, SafeAreaView, Animated,
+  Easing, Dimensions, TouchableOpacity, Alert, StatusBar,
 } from 'react-native';
 import { router } from 'expo-router';
-// @ts-ignore
-import { GENERATION_STEPS } from '@/utils/constants';
+import { useDesignStore } from '@/store/designStore';
+import { designApi } from '@/services/api/design';
 
 const { width } = Dimensions.get('window');
 
 const FUN_FACTS = [
-  "💡 3mm bleed prevents white edges after cutting",
-  "💡 CMYK colour mode is required for offset printing",
-  "💡 Standard RSC boxes use ~15% more sheet than die-cut",
+  "3mm bleed prevents white edges after cutting",
+  "CMYK colour mode is required for offset printing",
+  "Standard RSC boxes use ~15% more sheet than die-cut",
+  "300 DPI minimum resolution ensures crisp print quality",
+  "Box dielines include score lines for clean folding",
 ];
 
 const FALLBACK_STEPS = [
@@ -32,118 +26,147 @@ const FALLBACK_STEPS = [
 ];
 
 const GeneratingScreen = () => {
-  const steps = GENERATION_STEPS || FALLBACK_STEPS;
-  
+  const { generationJobId, setGeneratedDesigns } = useDesignStore();
+
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [currentFactIndex, setCurrentFactIndex] = useState(0);
-  
+  const [progressPct, setProgressPct] = useState(0);
+  const [currentStep, setCurrentStep] = useState('Starting generation...');
+
   const rotateAnim = useRef(new Animated.Value(0)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
   const stepOpacity = useRef(new Animated.Value(1)).current;
 
+  // Animate progress bar smoothly towards progressPct
   useEffect(() => {
-    // Rotating Box Animation
+    Animated.timing(progressAnim, {
+      toValue: progressPct / 100,
+      duration: 600,
+      easing: Easing.out(Easing.quad),
+      useNativeDriver: false,
+    }).start();
+  }, [progressPct]);
+
+  useEffect(() => {
+    // Rotation animation
     Animated.loop(
       Animated.timing(rotateAnim, {
-        toValue: 1,
-        duration: 2000,
-        easing: Easing.linear,
-        useNativeDriver: true,
+        toValue: 1, duration: 2000, easing: Easing.linear, useNativeDriver: true,
       })
     ).start();
 
-    // Progress Bar Animation (45 seconds)
-    Animated.timing(progressAnim, {
-      toValue: 1,
-      duration: 45000,
-      easing: Easing.linear,
-      useNativeDriver: false,
-    }).start();
-
-    // Step Text Cycling (every 3 seconds)
+    // Step text cycling
     const stepInterval = setInterval(() => {
       Animated.timing(stepOpacity, {
-        toValue: 0,
-        duration: 500,
-        useNativeDriver: true,
+        toValue: 0, duration: 400, useNativeDriver: true,
       }).start(() => {
-        setCurrentStepIndex((prev) => (prev + 1) % steps.length);
+        setCurrentStepIndex(prev => (prev + 1) % FALLBACK_STEPS.length);
         Animated.timing(stepOpacity, {
-          toValue: 1,
-          duration: 500,
-          useNativeDriver: true,
+          toValue: 1, duration: 400, useNativeDriver: true,
         }).start();
       });
     }, 3000);
 
-    // Fun Facts Cycling (every 5 seconds)
+    // Fun facts cycling
     const factInterval = setInterval(() => {
-      setCurrentFactIndex((prev) => (prev + 1) % FUN_FACTS.length);
+      setCurrentFactIndex(prev => (prev + 1) % FUN_FACTS.length);
     }, 5000);
 
-    // Auto-navigate after 45 seconds
-    const navTimeout = setTimeout(() => {
-      router.replace('/(design)/gallery');
-    }, 45000);
+    // Poll backend for job status
+    let pollCount = 0;
+    const MAX_POLLS = 60; // 120 seconds
+
+    const pollInterval = setInterval(async () => {
+      pollCount++;
+      if (pollCount > MAX_POLLS) {
+        clearInterval(pollInterval);
+        Alert.alert('Generation Timeout', 'Please try again.', [
+          { text: 'OK', onPress: () => router.replace('/(main)/home') },
+        ]);
+        return;
+      }
+
+      try {
+        const jobId = generationJobId || useDesignStore.getState().generationJobId;
+        if (!jobId) return;
+
+        const res = await designApi.getStatus(jobId);
+        const { status, progress, current_step, designs } = res.data;
+
+        setProgressPct(progress ?? 0);
+        if (current_step) setCurrentStep(current_step);
+
+        if (status === 'complete' && designs && designs.length > 0) {
+          clearInterval(pollInterval);
+          // Map backend designs → DesignThemeResult shape for the store
+          const mapped = designs.map((d: any, i: number) => ({
+            id: d.id || `design-${i}`,
+            themeName: d.theme,
+            theme: d.theme,
+            thumbnailColor: d.colour || d.color || '#1A3C6E',
+            thumbnailUrl: d.image_url || '',
+            flatDesignUrl: d.image_url || '',
+            imageUrl: d.image_url || null,
+            isFavourite: false,
+            prompt: d.revised_prompt || '',
+            palette: d.palette || ['#1A3C6E'],
+            colourPalette: d.palette || ['#1A3C6E'],
+            fonts: d.fonts || ['Inter'],
+            dimensions: '',
+          }));
+          setGeneratedDesigns({ designs: mapped, jobId, generatedAt: new Date().toISOString() });
+          router.replace('/(design)/gallery');
+        } else if (status === 'failed') {
+          clearInterval(pollInterval);
+          Alert.alert('Generation Failed', 'Please try again.', [
+            { text: 'OK', onPress: () => router.replace('/(main)/home') },
+          ]);
+        }
+      } catch (err) {
+        console.warn('Poll error:', err);
+        // Continue polling on network errors
+      }
+    }, 2000);
 
     return () => {
       clearInterval(stepInterval);
       clearInterval(factInterval);
-      clearTimeout(navTimeout);
+      clearInterval(pollInterval);
     };
-  }, []);
+  }, [generationJobId]);
 
   const handleCancel = () => {
     Alert.alert(
-      "Cancel Generation",
-      "Are you sure you want to stop generating these designs?",
+      'Cancel Generation',
+      'Are you sure you want to stop generating these designs?',
       [
-        { text: "No", style: "cancel" },
-        { 
-          text: "Yes, Cancel", 
-          style: "destructive",
-          onPress: () => router.replace('/(main)/home')
-        }
+        { text: 'No', style: 'cancel' },
+        { text: 'Yes, Cancel', style: 'destructive', onPress: () => router.replace('/(main)/home') },
       ]
     );
   };
 
-  const spin = rotateAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0deg', '360deg'],
-  });
-
-  const progressWidth = progressAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0%', '100%'],
-  });
+  const spin = rotateAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
+  const progressWidth = progressAnim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] });
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
-      
       <View style={styles.centerContent}>
-        {/* Animated Box */}
         <Animated.View style={[styles.boxContainer, { transform: [{ rotateY: spin }, { rotateX: spin }] }]}>
           <View style={styles.boxFace} />
         </Animated.View>
-
         <Animated.Text style={[styles.stepText, { opacity: stepOpacity }]}>
-          {steps[currentStepIndex]}
+          {currentStep || FALLBACK_STEPS[currentStepIndex]}
         </Animated.Text>
-        <Text style={styles.subtitle}>Please wait...</Text>
-
-        {/* Progress Bar */}
+        <Text style={styles.subtitle}>{progressPct}% complete</Text>
         <View style={styles.progressTrack}>
           <Animated.View style={[styles.progressBar, { width: progressWidth }]} />
         </View>
       </View>
-
-      {/* Fun Facts Carousel */}
       <View style={styles.factCard}>
         <Text style={styles.factText}>{FUN_FACTS[currentFactIndex]}</Text>
       </View>
-
       <TouchableOpacity style={styles.cancelLink} onPress={handleCancel}>
         <Text style={styles.cancelText}>Cancel</Text>
       </TouchableOpacity>

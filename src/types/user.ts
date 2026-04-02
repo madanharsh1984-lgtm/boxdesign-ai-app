@@ -5,6 +5,8 @@ export interface User {
   phone: string;
   email?: string;
   createdAt: string;
+  companyName?: string;
+  contactName?: string;
   profile?: UserProfile;
 }
 

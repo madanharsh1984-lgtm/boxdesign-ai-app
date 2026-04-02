@@ -62,7 +62,7 @@ const Toast: React.FC<ToastProps> = ({ message, type, onDismiss, visible }) => {
     }
   };
 
-  if (!visible && translateY._value === -150) return null;
+  if (!visible && (translateY as any)._value === -150) return null;
 
   return (
     <Animated.View

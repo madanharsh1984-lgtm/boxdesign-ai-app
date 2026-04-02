@@ -61,7 +61,8 @@ export default function CompareScreen() {
   };
 
   const handleSelect = (designId: string) => {
-    designStore.selectDesign(designId);
+    const design = selectedDesigns.find(d => d.id === designId);
+    designStore.selectDesign(design);
     router.push('/(design)/approval');
   };
 

@@ -20,7 +20,7 @@ import { useAuthStore } from '@/store/authStore';
 
 const ApprovalScreen = () => {
   const router = useRouter();
-  const { request, setRequest } = useDesignStore();
+  const { request, updateRequest: setRequest } = useDesignStore();
   const { user } = useAuthStore();
 
   const [isModalVisible, setModalVisible] = useState(false);
@@ -67,7 +67,7 @@ const ApprovalScreen = () => {
         {/* Design Preview */}
         <View style={[styles.previewCard, { backgroundColor: colours.secondary }]}>
           <View style={styles.previewOverlay}>
-            <Text style={styles.themeName}>{request.theme?.name || 'Modern Minimal'}</Text>
+            <Text style={styles.themeName}>{request.dimensions?.style || 'Modern Minimal'}</Text>
           </View>
         </View>
 

@@ -39,7 +39,7 @@ const ProfileScreen = () => {
     );
   };
 
-  const initial = user?.contactName?.charAt(0).toUpperCase() || 'B';
+  const initial = (user?.contactName || user?.profile?.contactName || 'B').charAt(0).toUpperCase();
 
   return (
     <View style={styles.container}>
@@ -51,8 +51,8 @@ const ProfileScreen = () => {
               <View style={styles.avatar}>
                 <Text style={styles.avatarText}>{initial}</Text>
               </View>
-              <Text style={styles.companyName}>{user?.companyName || 'Acme Packaging'}</Text>
-              <Text style={styles.contactName}>{user?.contactName || 'John Doe'}</Text>
+              <Text style={styles.companyName}>{user?.companyName || user?.profile?.companyName || 'Acme Packaging'}</Text>
+              <Text style={styles.contactName}>{user?.contactName || user?.profile?.contactName || 'John Doe'}</Text>
               <TouchableOpacity style={styles.editBtn}>
                 <Text style={styles.editBtnText}>Edit Profile</Text>
               </TouchableOpacity>

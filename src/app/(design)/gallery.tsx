@@ -8,6 +8,7 @@ import {
   SafeAreaView,
   ScrollView,
   Alert,
+  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -30,13 +31,17 @@ const THEMES = [
   { name: 'Brand-matched', color: '#1A3C6E' },
 ];
 
-const MOCK_DATA: DesignThemeResult[] = THEMES.map((theme, index) => ({
+const MOCK_DATA: DesignThemeResult[] = THEMES.map((t, index) => ({
   id: `design-${index}`,
-  themeName: theme.name,
-  thumbnailColor: theme.color,
+  theme: t.name as any,
+  themeName: t.name,
+  thumbnailColor: t.color,
+  thumbnailUrl: '',
+  flatDesignUrl: '',
+  imageUrl: '',
   isFavourite: false,
-  prompt: `A ${theme.name} box design`,
-  palette: ['#1A3C6E', '#2E86C1', '#E67E22', '#F8FAFC'],
+  prompt: `A ${t.name} box design`,
+  colourPalette: ['#1A3C6E', '#2E86C1', '#E67E22', '#F8FAFC'],
   fonts: ['Inter Bold', 'Roboto Regular'],
   dimensions: '20x15x10 cm',
 }));
@@ -44,14 +49,17 @@ const MOCK_DATA: DesignThemeResult[] = THEMES.map((theme, index) => ({
 export default function GalleryScreen() {
   const router = useRouter();
   const designStore = useDesignStore();
+  const realDesigns = designStore.generatedDesigns?.designs ?? [];
+  const displayData = realDesigns.length > 0 ? realDesigns : MOCK_DATA;
+
   const [selectedFilter, setSelectedFilter] = useState('All');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isCompareMode, setIsCompareMode] = useState(false);
 
   const filteredData = useMemo(() => {
-    if (selectedFilter === 'All') return MOCK_DATA;
-    return MOCK_DATA.filter(item => item.themeName === selectedFilter);
-  }, [selectedFilter]);
+    if (selectedFilter === 'All') return displayData;
+    return displayData.filter(item => item.themeName === selectedFilter);
+  }, [selectedFilter, displayData]);
 
   const toggleSelect = (id: string) => {
     if (selectedIds.includes(id)) {
@@ -74,7 +82,7 @@ export default function GalleryScreen() {
         { 
           text: 'Confirm', 
           onPress: () => {
-            designStore.decrementRegenerations();
+            designStore.decrementRegens();
             // Trigger regeneration logic here
           } 
         }
@@ -103,12 +111,19 @@ export default function GalleryScreen() {
     return (
       <View style={styles.card}>
         <TouchableOpacity 
-          style={[styles.thumbnail, { backgroundColor: item.thumbnailColor }]}
+          style={[styles.thumbnail, { backgroundColor: item.thumbnailColor || '#1A3C6E' }]}
           onPress={() => {
             if (isCompareMode) toggleSelect(item.id);
             else router.push({ pathname: '/(design)/design-detail', params: { designId: item.id } });
           }}
         >
+          {item.imageUrl ? (
+            <Image
+              source={{ uri: item.imageUrl }}
+              style={{ width: '100%', height: '100%', resizeMode: 'cover' }}
+              onError={() => {}}
+            />
+          ) : null}
           <View style={styles.themeBadge}>
             <Text style={styles.themeBadgeText}>{item.themeName}</Text>
           </View>
@@ -202,8 +217,11 @@ export default function GalleryScreen() {
           <TouchableOpacity 
             style={styles.selectBtn}
             onPress={() => {
-              designStore.selectDesign(selectedIds[0]);
-              router.push('/(design)/approval');
+              const toSelect = displayData.find(d => d.id === selectedIds[0]);
+              if (toSelect) {
+                designStore.selectDesign(toSelect);
+                router.push('/(design)/approval');
+              }
             }}
           >
             <Text style={styles.actionBarText}>Select This Design</Text>

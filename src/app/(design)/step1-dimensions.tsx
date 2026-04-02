@@ -118,7 +118,7 @@ const Step1Dimensions = () => {
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Length</Text>
             <TextInput
-              style={[styles.input, errors.length && styles.inputError]}
+              style={[styles.input, errors.length ? styles.inputError : {}]}
               keyboardType="numeric"
               value={length}
               onChangeText={setLength}
@@ -129,7 +129,7 @@ const Step1Dimensions = () => {
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Width</Text>
             <TextInput
-              style={[styles.input, errors.width && styles.inputError]}
+              style={[styles.input, errors.width ? styles.inputError : {}]}
               keyboardType="numeric"
               value={width}
               onChangeText={setWidth}
@@ -140,7 +140,7 @@ const Step1Dimensions = () => {
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Height</Text>
             <TextInput
-              style={[styles.input, errors.height && styles.inputError]}
+              style={[styles.input, errors.height ? styles.inputError : {}]}
               keyboardType="numeric"
               value={height}
               onChangeText={setHeight}

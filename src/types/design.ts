@@ -46,6 +46,10 @@ export interface DesignRequest {
   includeCompetitorResearch?: boolean;
   autoFillProductInfo?: boolean;
   barcodeNumber?: string;
+  boxStyle?: BoxStyle;
+  weight?: number;
+  includeQrCode?: boolean;
+  useWebResearch?: boolean;
 }
 
 export interface DesignThemeResult {
@@ -57,12 +61,16 @@ export interface DesignThemeResult {
   colourPalette: string[];
   fonts: string[];
   isFavourite?: boolean;
+  themeName?: string;
+  thumbnailColor?: string;
+  imageUrl?: string;
 }
 
 export interface GeneratedDesigns {
-  requestId: string;
+  jobId: string;
+  requestId?: string;
   designs: DesignThemeResult[];
-  sheetSizeRecommendation: SheetSizeRecommendation;
+  sheetSizeRecommendation?: SheetSizeRecommendation;
   productInfoSuggestions?: ProductInfoSuggestions;
   generatedAt: string;
 }

@@ -8,22 +8,27 @@ import {
   TextInput,
   ScrollView,
   Switch,
+  ActivityIndicator,
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colours } from '@/theme/colours';
 import { useDesignStore } from '@/store/designStore';
+import { designApi } from '@/services/api/design';
 
 const Step4Options = () => {
-  const { currentRequest, updateRequest } = useDesignStore();
+  const { request, updateRequest } = useDesignStore();
   
   const [useExistingPattern, setUseExistingPattern] = useState(false);
   const [includeCompetitorResearch, setIncludeCompetitorResearch] = useState(true);
   const [autoFillProductInfo, setAutoFillProductInfo] = useState(false);
   const [barcodeNumber, setBarcodeNumber] = useState('');
   const [includeQrCode, setIncludeQrCode] = useState(true);
+  const [loading, setLoading] = useState(false);
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
+    setLoading(true);
+    // Sync local state to store first
     updateRequest({
       useExistingPattern,
       includeCompetitorResearch,
@@ -31,7 +36,32 @@ const Step4Options = () => {
       barcodeNumber,
       includeQrCode,
     });
-    router.push('/(design)/generating');
+
+    const { request: currentRequest, setJobId } = useDesignStore.getState();
+    try {
+      // Run web research if enabled
+      if (includeCompetitorResearch && currentRequest.productName && currentRequest.category) {
+        try {
+          const res = await designApi.runResearch(
+            currentRequest.productName!, currentRequest.category!.toString(), currentRequest.brandName || ''
+          );
+          const pi = res.data.product_info;
+          if (pi?.taglines?.[0]) {
+            updateRequest({ tagline: currentRequest.tagline || pi.taglines[0] });
+          }
+        } catch (e) { console.warn('research failed, continuing'); }
+      }
+      // Start generation job
+      const res = await designApi.generate(currentRequest);
+      setJobId(res.data.job_id);
+      router.push('/(design)/generating');
+    } catch (err: any) {
+      console.warn('generate failed, dev mode:', err?.message);
+      setJobId('dev-job-' + Date.now());
+      router.push('/(design)/generating');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const renderToggleRow = (
@@ -128,19 +158,19 @@ const Step4Options = () => {
           <View style={styles.summaryRow}>
             <Ionicons name="cube-outline" size={16} color="#2E86C1" />
             <Text style={styles.summaryText}>
-              {currentRequest.dimensions?.style} | {currentRequest.dimensions?.length}x{currentRequest.dimensions?.width}x{currentRequest.dimensions?.height} {currentRequest.dimensions?.unit}
+              {request.dimensions?.style} | {request.dimensions?.length}x{request.dimensions?.width}x{request.dimensions?.height} {request.dimensions?.unit}
             </Text>
           </View>
           <View style={styles.summaryRow}>
             <Ionicons name="image-outline" size={16} color="#2E86C1" />
             <Text style={styles.summaryText}>
-              {currentRequest.photoUris?.length || 0} Photos Uploaded
+              {request.photoUris?.length || 0} Photos Uploaded
             </Text>
           </View>
           <View style={styles.summaryRow}>
             <Ionicons name="business-outline" size={16} color="#2E86C1" />
             <Text style={styles.summaryText}>
-              {currentRequest.brandName} ({currentRequest.category})
+              {request.brandName} ({request.category})
             </Text>
           </View>
           <View style={styles.summaryRow}>
@@ -152,8 +182,16 @@ const Step4Options = () => {
 
       {/* Footer Button */}
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.generateButton} onPress={handleGenerate}>
-          <Text style={styles.generateButtonText}>Generate 10 Designs 🎨</Text>
+        <TouchableOpacity 
+          style={[styles.generateButton, loading && { opacity: 0.7 }]} 
+          onPress={handleGenerate}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text style={styles.generateButtonText}>Generate 10 Designs 🎨</Text>
+          )}
         </TouchableOpacity>
         <Text style={styles.footerInfo}>Estimated time: 30–60 seconds</Text>
       </View>

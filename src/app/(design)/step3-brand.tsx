@@ -13,6 +13,7 @@ import {
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colours } from '@/theme/colours';
+import { Category, Market, FontStyle } from '@/types/design';
 import { useDesignStore } from '@/store/designStore';
 
 const CATEGORIES = ['Food', 'Electronics', 'FMCG', 'Pharma', 'E-commerce', 'Industrial', 'Other'];
@@ -64,9 +65,9 @@ const Step3Brand = () => {
       brandName,
       tagline,
       productName,
-      category,
-      targetMarket,
-      fontStyle,
+      category: category as Category,
+      targetMarket: targetMarket as Market,
+      fontStyle: fontStyle as FontStyle,
       preferredColours,
       prompt,
     });
@@ -108,7 +109,7 @@ const Step3Brand = () => {
           <View style={styles.formSection}>
             <Text style={styles.label}>Brand Name *</Text>
             <TextInput
-              style={[styles.input, errors.brandName && styles.inputError]}
+              style={[styles.input, errors.brandName ? styles.inputError : {}]}
               placeholder="Your Brand"
               value={brandName}
               onChangeText={setBrandName}
@@ -124,7 +125,7 @@ const Step3Brand = () => {
 
             <Text style={styles.label}>Product Name *</Text>
             <TextInput
-              style={[styles.input, errors.productName && styles.inputError]}
+              style={[styles.input, errors.productName ? styles.inputError : {}]}
               placeholder="e.g. Organic Milk"
               value={productName}
               onChangeText={setProductName}

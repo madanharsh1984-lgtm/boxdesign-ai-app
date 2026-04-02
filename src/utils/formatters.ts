@@ -7,8 +7,10 @@ export function formatINR(amount: number): string {
 }
 
 /** Calculate GST amount */
-export function calcGST(base: number): number {
-  return Math.round(base * GST_RATE);
+export function calcGST(base: number): { gstAmount: number; totalAmount: number } {
+  const gstAmount = Math.round(base * GST_RATE);
+  const totalAmount = base + gstAmount;
+  return { gstAmount, totalAmount };
 }
 
 /** Format file size */

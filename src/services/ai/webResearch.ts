@@ -1,6 +1,5 @@
 // BoxDesign AI — Web Research Service (Frontend)
-
-import apiClient from '@/services/api/client';
+import { apiClient } from '@/services/api/client';
 
 /**
  * Interface representing a competitor packaging image result.

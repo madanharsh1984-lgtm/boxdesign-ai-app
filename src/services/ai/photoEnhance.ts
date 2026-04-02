@@ -1,5 +1,5 @@
 // BoxDesign AI — Photo Enhancement Service (Frontend)
-import apiClient from '@/services/api/client';
+import { apiClient } from '@/services/api/client';
 import { API_BASE_URL } from '@/utils/constants';
 
 export interface EnhancedPhotoResult {

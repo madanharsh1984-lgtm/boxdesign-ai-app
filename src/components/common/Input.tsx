@@ -5,7 +5,6 @@ import {
   TextInput,
   StyleSheet,
   KeyboardTypeOptions,
-  NativeTransitionsGuiContext,
 } from 'react-native';
 import { colours } from '@/theme/colours';
 import { spacing, borderRadius } from '@/theme/spacing';

@@ -17,7 +17,7 @@ const STATUS_COLOUR: Record<string, string> = {
   draft:      colours.draft,
   approved:   colours.approved,
   delivered:  colours.delivered,
-  processing: colours.info,
+  generating: colours.info,
   paid:       colours.success,
   failed:     colours.error,
 };
@@ -48,7 +48,7 @@ export default function HomeScreen() {
 
   const totalDesigns   = orders.length;
   const approvedCount  = orders.filter((o) => o.status === 'approved' || o.status === 'delivered').length;
-  const pendingCount   = orders.filter((o) => o.status === 'draft' || o.status === 'processing').length;
+  const pendingCount   = orders.filter((o) => o.status === 'draft' || o.status === 'generating').length;
 
   return (
     <SafeAreaView style={styles.safeArea}>

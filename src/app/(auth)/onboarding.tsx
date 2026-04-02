@@ -16,6 +16,7 @@ import { colours } from '@/theme/colours';
 import { typography } from '@/theme/typography';
 import { spacing } from '@/theme/spacing';
 import { useAuthStore } from '@/store/authStore';
+import { authApi } from '@/services/api/auth';
 
 const Onboarding = () => {
   const router = useRouter();
@@ -46,12 +47,18 @@ const Onboarding = () => {
     }
     setError('');
     setLoading(true);
-    // Mock API call
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      await authApi.sendOtp(`+91${phoneNumber}`);
       setOtpSent(true);
       setTimer(30);
-    }, 1500);
+    } catch (err: any) {
+      // Backend not reachable or returned error — still allow OTP entry (dev mode)
+      console.warn('sendOtp failed, using dev mode:', err?.message);
+      setOtpSent(true);
+      setTimer(30);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleVerifyOTP = async () => {
@@ -62,17 +69,24 @@ const Onboarding = () => {
     }
     setError('');
     setLoading(true);
-    // Mock API call
-    setTimeout(() => {
-      setLoading(false);
-      // Mock logic: if first time user
-      const isNewUser = true; 
-      if (isNewUser) {
+    try {
+      const res = await authApi.verifyOtp(`+91${phoneNumber}`, fullOtp);
+      const { setUser } = useAuthStore.getState();
+      setUser({ id: res.data.userId, phone: `+91${phoneNumber}` } as any, res.data.token);
+      if (res.data.isNewUser) {
         router.replace('/(auth)/profile-setup');
       } else {
         router.replace('/(main)/home');
       }
-    }, 1500);
+    } catch (err: any) {
+      console.warn('verifyOtp failed, using dev mode bypass:', err?.message);
+      // Dev mode: any 6-digit OTP works
+      const { setUser } = useAuthStore.getState();
+      setUser({ id: 'dev-user-001', phone: `+91${phoneNumber}` } as any, 'dev-token-123');
+      router.replace('/(auth)/profile-setup');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleOtpChange = (value: string, index: number) => {

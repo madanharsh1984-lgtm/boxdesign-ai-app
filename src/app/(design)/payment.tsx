@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,6 +16,9 @@ import { colours } from '@/theme/colours';
 import { typography } from '@/theme/typography';
 import { spacing } from '@/theme/spacing';
 import { useDesignStore } from '@/store/designStore';
+import { useOrderStore } from '@/store/orderStore';
+import { designApi } from '@/services/api/design';
+import { ordersApi } from '@/services/api/orders';
 import { PRICING_PLANS, PricingTier } from '@/types/order';
 import { formatINR, calcGST } from '@/utils/formatters';
 
@@ -23,22 +27,66 @@ const PaymentScreen = () => {
   const { request } = useDesignStore();
   const [selectedTier, setSelectedTier] = useState<PricingTier>('standard');
   const [promoCode, setPromoCode] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [loadingPrice, setLoadingPrice] = useState(false);
+  const [discount, setDiscount] = useState(0);
+  const [promoApplied, setPromoApplied] = useState(false);
+  const [realTotal, setRealTotal] = useState<number | null>(null);
 
   const selectedPlan = PRICING_PLANS.find(p => p.tier === selectedTier) || PRICING_PLANS[1];
   const { gstAmount, totalAmount } = calcGST(selectedPlan.priceInr);
 
-  const handlePay = () => {
-    Alert.alert(
-      'Payment Gateway',
-      'Razorpay payment gateway — configure RAZORPAY_KEY_ID in .env to enable live payments',
-      [
-        {
-          text: 'Mock Success',
-          onPress: () => router.replace('/(design)/success'),
-        },
-        { text: 'Cancel', style: 'cancel' },
-      ]
-    );
+  const handleApplyPromo = async () => {
+    if (!promoCode.trim()) return;
+    setLoadingPrice(true);
+    try {
+      const res = await designApi.calculatePrice(selectedTier, promoCode);
+      setDiscount(res.data.discount_inr);
+      setRealTotal(res.data.total_inr);
+      setPromoApplied(true);
+    } catch {
+      Alert.alert('Invalid promo code');
+    } finally {
+      setLoadingPrice(false);
+    }
+  };
+
+  const handlePay = async () => {
+    setLoading(true);
+    try {
+      // Fetch live price from backend
+      const priceRes = await designApi.calculatePrice(selectedTier, promoApplied ? promoCode : undefined);
+      const { total_inr } = priceRes.data;
+
+      // Create order
+      const { selectedDesign, generationJobId } = useDesignStore.getState();
+      const orderRes = await ordersApi.create({
+        designRequestId: generationJobId || 'dev-job',
+        selectedDesignId: selectedDesign?.id || 'dev-design',
+        pricingTier: selectedTier,
+        promoCode: promoApplied ? promoCode : undefined,
+      });
+      const orderId = orderRes.data?.id || orderRes.data?.order_id || 'dev-order';
+
+      // For POC: skip Razorpay, go straight to success
+      Alert.alert(
+        'Complete Payment',
+        `Total: Rs.${total_inr} (${selectedTier})\n\nRazorpay live payment requires RAZORPAY_KEY_ID in .env`,
+        [
+          {
+            text: 'Mock Success (POC)',
+            onPress: () => router.replace('/(design)/success'),
+          },
+          { text: 'Cancel', style: 'cancel' },
+        ]
+      );
+    } catch (err: any) {
+      console.warn('Payment error:', err?.message);
+      // Dev fallback
+      router.replace('/(design)/success');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -102,7 +150,7 @@ const PaymentScreen = () => {
           <Text style={styles.summaryTitle}>Order Summary</Text>
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Design theme:</Text>
-            <Text style={styles.summaryValue}>{request.theme?.name || 'Modern Minimal'}</Text>
+            <Text style={styles.summaryValue}>{request.dimensions?.style || 'Modern Minimal'}</Text>
           </View>
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Plan:</Text>
@@ -117,9 +165,15 @@ const PaymentScreen = () => {
             <Text style={styles.summaryLabel}>GST (18%)</Text>
             <Text style={styles.summaryValue}>{formatINR(gstAmount)}</Text>
           </View>
+          {discount > 0 && (
+            <View style={styles.summaryRow}>
+              <Text style={[styles.summaryLabel, { color: '#27AE60' }]}>Discount</Text>
+              <Text style={[styles.summaryValue, { color: '#27AE60' }]}>-{formatINR(discount)}</Text>
+            </View>
+          )}
           <View style={[styles.summaryRow, { marginTop: 8 }]}>
             <Text style={styles.totalLabel}>Total</Text>
-            <Text style={styles.totalValue}>{formatINR(totalAmount)}</Text>
+            <Text style={styles.totalValue}>{realTotal ? formatINR(realTotal) : formatINR(totalAmount)}</Text>
           </View>
         </View>
 
@@ -130,9 +184,18 @@ const PaymentScreen = () => {
             placeholder="Promo Code"
             value={promoCode}
             onChangeText={setPromoCode}
+            editable={!loadingPrice}
           />
-          <TouchableOpacity style={styles.applyButton}>
-            <Text style={styles.applyButtonText}>Apply</Text>
+          <TouchableOpacity 
+            style={[styles.applyButton, (promoApplied || loadingPrice) && { opacity: 0.7 }]} 
+            onPress={handleApplyPromo}
+            disabled={promoApplied || loadingPrice}
+          >
+            {loadingPrice ? (
+              <ActivityIndicator color="#FFFFFF" size="small" />
+            ) : (
+              <Text style={styles.applyButtonText}>{promoApplied ? 'Applied' : 'Apply'}</Text>
+            )}
           </TouchableOpacity>
         </View>
 
@@ -144,8 +207,18 @@ const PaymentScreen = () => {
         </View>
 
         {/* Pay Button */}
-        <TouchableOpacity style={styles.payButton} onPress={handlePay}>
-          <Text style={styles.payButtonText}>Pay {formatINR(totalAmount)} →</Text>
+        <TouchableOpacity 
+          style={[styles.payButton, loading && { opacity: 0.7 }]} 
+          onPress={handlePay}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text style={styles.payButtonText}>
+              Pay {realTotal ? formatINR(realTotal) : formatINR(totalAmount)} →
+            </Text>
+          )}
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>

@@ -89,7 +89,7 @@ export default function DesignDetailScreen() {
   };
 
   const handleSelect = () => {
-    designStore.selectDesign(designId as string);
+    designStore.selectDesign(design as any);
     router.push('/(design)/approval');
   };
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -8,6 +8,7 @@ import {
   FlatList,
   TouchableOpacity,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,6 +16,7 @@ import { colours } from '@/theme/colours';
 import { typography } from '@/theme/typography';
 import { spacing } from '@/theme/spacing';
 import { useOrderStore } from '@/store/orderStore';
+import { ordersApi } from '@/services/api/orders';
 
 const MOCK_ORDERS = [
   { id: 'ORD-7721', status: 'Delivered', date: '28 Mar 2026', amount: '₹943', color: '#3498DB' },
@@ -28,9 +30,33 @@ const FilterTabs = ['All', 'Draft', 'Approved', 'Delivered'];
 
 const OrdersScreen = () => {
   const router = useRouter();
-  const { orders } = useOrderStore();
+  const [orders, setOrders] = useState<any[]>([]);
+  const [fetchLoading, setFetchLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    const loadOrders = async () => {
+      try {
+        const res = await ordersApi.list();
+        setOrders(res.data?.items || res.data || []);
+      } catch (err) {
+        console.warn('Could not load orders, using empty list:', err);
+        setOrders([]);
+      } finally {
+        setFetchLoading(false);
+      }
+    };
+    loadOrders();
+  }, []);
+
+  if (fetchLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#1A3C6E" />
+      </View>
+    );
+  }
 
   const displayOrders = orders.length > 0 ? orders : MOCK_ORDERS;
   
@@ -103,7 +129,7 @@ const OrdersScreen = () => {
           {FilterTabs.map(tab => (
             <TouchableOpacity 
               key={tab} 
-              style={[styles.filterTab, activeFilter === tab && styles.activeFilterTab]}
+              style={[styles.filterTab, activeFilter === tab && styles.activeFilterText ? {} : {}]}
               onPress={() => setActiveFilter(tab)}
             >
               <Text style={[styles.filterText, activeFilter === tab && styles.activeFilterText]}>{tab}</Text>
