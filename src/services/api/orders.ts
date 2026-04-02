@@ -2,18 +2,23 @@
 import { apiClient } from './client';
 
 export interface CreateOrderPayload {
-  designRequestId: string; selectedDesignId: string;
-  pricingTier: string; promoCode?: string;
+  designRequestId: string;
+  selectedDesignId: string;
+  pricingTier: string;
+  promoCode?: string;
   approvedByName?: string;
 }
+
 export interface ConfirmPaymentPayload {
-  orderId: string; razorpayOrderId: string;
-  razorpayPaymentId: string; razorpaySignature: string;
+  orderId: string;
+  razorpayOrderId: string;
+  razorpayPaymentId: string;
+  razorpaySignature: string;
 }
 
 export const ordersApi = {
   create: (payload: CreateOrderPayload) =>
-    apiClient.post('/orders/create', {
+    apiClient.post('/orders/', {
       design_request_id: payload.designRequestId,
       selected_design_id: payload.selectedDesignId,
       pricing_tier: payload.pricingTier,
@@ -29,12 +34,21 @@ export const ordersApi = {
       razorpay_signature: payload.razorpaySignature,
     }),
 
-  list: (page = 1, limit = 20) =>
-    apiClient.get('/orders', { params: { page, limit } }),
+  list: (page = 1, limit = 20, status?: string) =>
+    apiClient.get('/orders/', { params: { page, page_size: limit, ...(status ? { status } : {}) } }),
 
   get: (orderId: string) =>
     apiClient.get(`/orders/${orderId}`),
 
-  reorder: (orderId: string) =>
-    apiClient.post(`/orders/${orderId}/reorder`),
+  stats: () =>
+    apiClient.get('/orders/stats'),
+
+  getLinks: (orderId: string) =>
+    apiClient.get(`/files/${orderId}/links`),
+
+  shareWhatsApp: (orderId: string) =>
+    apiClient.get(`/files/${orderId}/share-whatsapp`),
+
+  shareEmail: (orderId: string) =>
+    apiClient.get(`/files/${orderId}/share-email`),
 };

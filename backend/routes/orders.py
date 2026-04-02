@@ -210,6 +210,9 @@ async def confirm_payment(
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
 
+    if order.status in (OrderStatus.GENERATING, OrderStatus.DELIVERED):
+        raise HTTPException(status_code=400, detail="Payment already confirmed for this order")
+
     # Verify Razorpay signature (bypassed in dev if no secret key)
     sig_valid = verify_payment_signature(
         req.razorpay_order_id,
@@ -271,6 +274,21 @@ async def list_orders(
         "page": page,
         "has_more": (offset + page_size) < total,
     }
+
+
+@router.get("/stats", summary="Get order count stats for current user")
+async def get_order_stats(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    from sqlalchemy import func
+    user_orders = db.query(Order).filter(Order.user_id == current_user.id)
+    total = user_orders.count()
+    approved = user_orders.filter(Order.status.in_([OrderStatus.APPROVED, OrderStatus.PAID])).count()
+    pending = user_orders.filter(Order.status.in_([OrderStatus.GENERATING])).count()
+    delivered = user_orders.filter(Order.status == OrderStatus.DELIVERED).count()
+    draft = user_orders.filter(Order.status == OrderStatus.DRAFT).count()
+    return {"total": total, "approved": approved, "pending": pending, "delivered": delivered, "draft": draft}
 
 
 @router.get("/{order_id}", summary="Get single order detail")

@@ -1,5 +1,6 @@
 // BoxDesign AI — Auth API Service
 import { apiClient } from './client';
+import type { UserProfile } from '@/types/user';
 
 export interface SendOtpResponse { success: boolean; message: string; }
 export interface VerifyOtpResponse { access_token: string; userId: string; isNewUser: boolean; }
@@ -20,8 +21,8 @@ export const authApi = {
   googleSignIn: (idToken: string) =>
     apiClient.post<GoogleAuthResponse>('/auth/google', { id_token: idToken }),
 
-  updateProfile: (payload: UpdateProfilePayload) =>
-    apiClient.put('/auth/profile', payload),
+  updateProfile: (data: Partial<UserProfile>) =>
+    apiClient.put('/auth/profile', data),
 
   getProfile: () =>
     apiClient.get('/auth/profile'),

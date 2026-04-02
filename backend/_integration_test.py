@@ -160,6 +160,111 @@ chk("GET /auth/profile without token -> 401/403", r.status_code in (401, 403))
 r = client.get("/v1/auth/profile", headers={"Authorization": "Bearer bad-token"})
 chk("GET /auth/profile with bad token -> 401", r.status_code == 401)
 
+r = client.post("/v1/auth/send-otp", json={"phone": "9667964756"})  # Missing +
+chk("send-otp with bad phone format -> 400", r.status_code == 400)
+
+# ── 6. Files API ─────────────────────────────────────────────────────
+print("\n[6] Files API")
+
+# Need a delivered order to test files — wait for background task to complete
+if order_id:
+    time.sleep(3)  # background file generation
+    r = client.get(f"/v1/files/{order_id}/links", headers=headers)
+    chk("GET /files/{order_id}/links -> 200 or 404",
+        r.status_code in (200, 404),   # 404 if background task still running
+        f"status={r.status_code}")
+    if r.status_code == 200:
+        data = r.json()
+        chk("links response has order_id", data.get("order_id") == order_id)
+
+    r = client.get(f"/v1/files/nonexistent-order-id/links", headers=headers)
+    chk("GET /files/bad-order-id/links -> 404", r.status_code == 404)
+
+    # Second user — register another phone, get their token, try to access first user's order
+    r2 = client.post("/v1/auth/verify-otp", json={"phone": "+919999999999", "otp": "654321"})
+    if r2.status_code == 200:
+        token2 = r2.json().get("access_token")
+        headers2 = {"Authorization": f"Bearer {token2}"}
+        r = client.get(f"/v1/files/{order_id}/links", headers=headers2)
+        chk("GET /files/{order_id}/links with OTHER user -> 403", r.status_code == 403,
+            f"status={r.status_code}")
+
+    r = client.get(f"/v1/files/{order_id}/share-whatsapp", headers=headers)
+    chk("GET /files/{order_id}/share-whatsapp -> 200",
+        r.status_code == 200 and "whatsapp_url" in r.json(),
+        f"status={r.status_code}")
+
+    r = client.get(f"/v1/files/{order_id}/share-email", headers=headers)
+    chk("GET /files/{order_id}/share-email -> 200",
+        r.status_code == 200 and "mailto_url" in r.json(),
+        f"status={r.status_code}")
+
+# ── 7. Validation edge cases ─────────────────────────────────────────
+print("\n[7] Validation Edge Cases")
+
+r = client.post("/v1/design/generate", json={
+    "length_mm": 0, "width_mm": 200, "height_mm": 150,
+    "brand_name": "Test", "product_name": "Test"
+}, headers=headers)
+chk("POST /generate with length_mm=0 -> 422", r.status_code == 422,
+    f"status={r.status_code} body={str(r.json())[:80]}")
+
+r = client.post("/v1/design/generate", json={
+    "length_mm": 300, "width_mm": 200, "height_mm": 99999,
+    "brand_name": "Test", "product_name": "Test"
+}, headers=headers)
+chk("POST /generate with height_mm=99999 -> 422", r.status_code == 422,
+    f"status={r.status_code}")
+
+r = client.post("/v1/orders/", json={
+    "design_request_id": "x", "selected_design_id": "x",
+    "pricing_tier": "gold", "approved_by_name": "Tester"
+}, headers=headers)
+chk("POST /orders/ with tier=gold -> 400", r.status_code == 400,
+    f"status={r.status_code}")
+
+if order_id:
+    # Try to double-confirm an already-paid order
+    r = client.post("/v1/orders/confirm-payment", json={
+        "order_id": order_id,
+        "razorpay_order_id": razorpay_order_id,
+        "razorpay_payment_id": "mock_pay_dupe",
+        "razorpay_signature": "mock_sig_dupe",
+    }, headers=headers)
+    chk("POST /orders/confirm-payment (duplicate) -> 400",
+        r.status_code == 400,
+        f"status={r.status_code} detail={r.json().get('detail','')[:60]}")
+
+# ── 8. Order Stats ───────────────────────────────────────────────────
+print("\n[8] Order Stats")
+
+r = client.get("/v1/orders/stats", headers=headers)
+chk("GET /orders/stats -> 200", r.status_code == 200,
+    f"status={r.status_code} body={str(r.json())[:80]}")
+if r.status_code == 200:
+    data = r.json()
+    chk("stats has total field", "total" in data, str(data))
+    chk("stats has approved field", "approved" in data)
+    chk("stats has pending field", "pending" in data)
+    chk("stats has delivered field", "delivered" in data)
+    chk("stats total >= 1 (we created 1 order)", data.get("total", 0) >= 1,
+        f"total={data.get('total')}")
+
+# ── 9. Logo Upload ───────────────────────────────────────────────────
+print("\n[9] Logo Upload")
+
+import io
+# Create a minimal JPEG-like file (just needs to be accepted as a file)
+fake_image = io.BytesIO(b"\xff\xd8\xff\xe0" + b"\x00" * 100 + b"\xff\xd9")  # Minimal JPEG header+footer
+r = client.post(
+    "/v1/auth/upload-logo",
+    files={"file": ("logo.jpg", fake_image, "image/jpeg")},
+    headers=headers,
+)
+chk("POST /auth/upload-logo -> 200 with logo_url",
+    r.status_code == 200 and "logo_url" in r.json(),
+    f"status={r.status_code} body={str(r.json())[:100]}")
+
 # ── Summary ─────────────────────────────────────────────────────────
 print("\n" + "=" * 65)
 passed = sum(1 for _, ok in results if ok)

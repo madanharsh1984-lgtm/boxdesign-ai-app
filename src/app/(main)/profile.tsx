@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   StyleSheet,
   View,
@@ -8,18 +8,37 @@ import {
   TouchableOpacity,
   Switch,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { colours } from '@/theme/colours';
 import { typography } from '@/theme/typography';
 import { spacing } from '@/theme/spacing';
 import { useAuthStore } from '@/store/authStore';
+import { authApi } from '@/services/api/auth';
+import { apiClient } from '@/services/api/client';
 
 const ProfileScreen = () => {
   const router = useRouter();
-  const { user, logout } = useAuthStore();
-  const [notificationsEnabled, setNotificationsEnabled] = React.useState(true);
+  const { user, logout, updateProfile } = useAuthStore();
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const res = await authApi.getProfile();
+        if (res.data) {
+          updateProfile(res.data);
+        }
+      } catch (e) {
+        console.warn('fetchProfile failed', e);
+      }
+    };
+    fetchProfile();
+  }, []);
 
   const handleLogout = () => {
     Alert.alert(
@@ -39,10 +58,86 @@ const ProfileScreen = () => {
     );
   };
 
-  const initial = (user?.contactName || user?.profile?.contactName || 'B').charAt(0).toUpperCase();
+  const handleEditProfile = () => {
+    // Alert.prompt is not supported on Android, so we use Alert.alert as per instructions
+    Alert.alert(
+      'Edit Profile',
+      'Would you like to update your profile information?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Update', 
+          onPress: async () => {
+            setLoading(true);
+            try {
+              // Mock update for now as we can't take input with Alert.alert
+              const res = await authApi.updateProfile({ 
+                companyName: user?.profile?.companyName || 'My Company' 
+              });
+              if (res.data) {
+                updateProfile(res.data);
+                Alert.alert('Success', 'Profile updated!');
+              }
+            } catch (e) {
+              Alert.alert('Error', 'Profile update failed');
+            } finally {
+              setLoading(false);
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleLogoUpload = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({ 
+        mediaTypes: ImagePicker.MediaTypeOptions.Images, 
+        quality: 0.8,
+        allowsEditing: true,
+      });
+
+      if (result.canceled) return;
+
+      setLoading(true);
+      const asset = result.assets[0];
+      const formData = new FormData();
+      
+      // @ts-ignore
+      formData.append('file', { 
+        uri: asset.uri, 
+        type: 'image/jpeg', 
+        name: 'logo.jpg' 
+      });
+
+      const res = await apiClient.post('/auth/upload-logo', formData, { 
+        headers: { 'Content-Type': 'multipart/form-data' } 
+      });
+
+      if (res.data) {
+        Alert.alert('Success', 'Logo uploaded successfully!');
+        // Refresh profile to get new logo URL
+        const profileRes = await authApi.getProfile();
+        if (profileRes.data) updateProfile(profileRes.data);
+      }
+    } catch (e) {
+      console.error(e);
+      Alert.alert('Error', 'Logo upload failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const profile = user?.profile || user;
+  const initial = (profile?.contactName || 'B').charAt(0).toUpperCase();
 
   return (
     <View style={styles.container}>
+      {loading && (
+        <View style={styles.loaderOverlay}>
+          <ActivityIndicator size="large" color="#FFFFFF" />
+        </View>
+      )}
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Navy Top Section */}
         <View style={styles.topSection}>
@@ -51,9 +146,9 @@ const ProfileScreen = () => {
               <View style={styles.avatar}>
                 <Text style={styles.avatarText}>{initial}</Text>
               </View>
-              <Text style={styles.companyName}>{user?.companyName || user?.profile?.companyName || 'Acme Packaging'}</Text>
-              <Text style={styles.contactName}>{user?.contactName || user?.profile?.contactName || 'John Doe'}</Text>
-              <TouchableOpacity style={styles.editBtn}>
+              <Text style={styles.companyName}>{profile?.companyName || 'Acme Packaging'}</Text>
+              <Text style={styles.contactName}>{profile?.contactName || 'John Doe'}</Text>
+              <TouchableOpacity style={styles.editBtn} onPress={handleEditProfile}>
                 <Text style={styles.editBtnText}>Edit Profile</Text>
               </TouchableOpacity>
             </View>
@@ -63,7 +158,7 @@ const ProfileScreen = () => {
         {/* Settings Sections */}
         <View style={styles.content}>
           <SectionHeader label="BRAND ASSETS" />
-          <SettingsRow icon="🖼️" label="Logo" onPress={() => {}} showChevron />
+          <SettingsRow icon="🖼️" label="Logo" onPress={handleLogoUpload} showChevron />
           <SettingsRow icon="🎨" label="Colours" onPress={() => {}} showChevron />
           <SettingsRow icon="📐" label="Patterns" onPress={() => {}} showChevron />
 
@@ -146,6 +241,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
+  },
+  loaderOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    zIndex: 999,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   topSection: {
     backgroundColor: '#1A3C6E',

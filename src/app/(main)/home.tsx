@@ -1,8 +1,9 @@
 // ─── SCR-05: Home Dashboard ───────────────────────────────────────────────────
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
   TouchableOpacity, StatusBar, SafeAreaView, FlatList,
+  ActivityIndicator,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useAuthStore }  from '@/store/authStore';
@@ -44,11 +45,17 @@ function OrderCard({ order }: { order: Order }) {
 
 export default function HomeScreen() {
   const { user }   = useAuthStore();
-  const { orders } = useOrderStore();
+  const orderStore = useOrderStore();
+  const { orders, stats, isLoading } = orderStore;
 
-  const totalDesigns   = orders.length;
-  const approvedCount  = orders.filter((o) => o.status === 'approved' || o.status === 'delivered').length;
-  const pendingCount   = orders.filter((o) => o.status === 'draft' || o.status === 'generating').length;
+  useEffect(() => {
+    orderStore.fetchOrders();
+    orderStore.fetchStats();
+  }, []);
+
+  const totalDesigns   = stats?.total ?? orders.length;
+  const approvedCount  = (stats?.approved ?? 0) + (stats?.delivered ?? 0) || orders.filter((o) => o.status === 'approved' || o.status === 'delivered').length;
+  const pendingCount   = (stats?.pending ?? 0) + (stats?.draft ?? 0) || orders.filter((o) => o.status === 'draft' || o.status === 'generating').length;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -101,7 +108,12 @@ export default function HomeScreen() {
 
         {/* Recent Designs */}
         <Text style={styles.sectionTitle}>Recent Designs</Text>
-        {orders.length === 0 ? (
+        
+        {isLoading && orders.length === 0 ? (
+          <View style={{ paddingVertical: spacing.xxxl }}>
+            <ActivityIndicator size="large" color={colours.primary} />
+          </View>
+        ) : orders.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyIcon}>📦</Text>
             <Text style={styles.emptyText}>No designs yet.</Text>
@@ -114,8 +126,8 @@ export default function HomeScreen() {
             renderItem={({ item }) => <OrderCard order={item} />}
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: spacing.base }}
-            scrollEnabled={false}
+            contentContainerStyle={{ paddingHorizontal: spacing.base, paddingBottom: spacing.base }}
+            scrollEnabled={true}
           />
         )}
       </ScrollView>

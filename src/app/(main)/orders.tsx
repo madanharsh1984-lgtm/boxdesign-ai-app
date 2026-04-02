@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   StyleSheet,
   View,
@@ -9,13 +9,15 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
+  RefreshControl,
+  Alert,
+  Linking,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colours } from '@/theme/colours';
 import { typography } from '@/theme/typography';
 import { spacing } from '@/theme/spacing';
-import { useOrderStore } from '@/store/orderStore';
 import { ordersApi } from '@/services/api/orders';
 
 const MOCK_ORDERS = [
@@ -32,37 +34,60 @@ const OrdersScreen = () => {
   const router = useRouter();
   const [orders, setOrders] = useState<any[]>([]);
   const [fetchLoading, setFetchLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [activeFilter, setActiveFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
 
+  const loadOrders = useCallback(async (showLoading = true) => {
+    if (showLoading) setFetchLoading(true);
+    try {
+      const res = await ordersApi.list();
+      const items = res.data?.items || res.data || [];
+      const mappedOrders = items.map((item: any) => ({
+        id: item.order_id || item.id,
+        status: item.status,
+        tier: item.pricing_tier,
+        amount: `₹${item.total_amount_inr || 0}`,
+        date: item.created_at ? new Date(item.created_at).toLocaleDateString('en-IN') : 'N/A',
+        pdf_url: item.pdf_url,
+        png_url: item.png_url,
+        cdr_url: item.cdr_url,
+        color: colours.secondary,
+      }));
+      setOrders(mappedOrders);
+    } catch (err) {
+      console.warn('Could not load orders, using mock data:', err);
+      if (orders.length === 0) setOrders(MOCK_ORDERS);
+    } finally {
+      setFetchLoading(false);
+      setRefreshing(false);
+    }
+  }, [orders.length]);
+
   useEffect(() => {
-    const loadOrders = async () => {
-      try {
-        const res = await ordersApi.list();
-        const items = res.data?.items || res.data || [];
-        const mappedOrders = items.map((item: any) => ({
-          id: item.order_id || item.id,
-          status: item.status,
-          tier: item.pricing_tier,
-          amount: `₹${item.total_amount_inr}`,
-          date: new Date(item.created_at).toLocaleDateString('en-IN'),
-          pdf_url: item.pdf_url,
-          png_url: item.png_url,
-          cdr_url: item.cdr_url,
-          color: colours.secondary,
-        }));
-        setOrders(mappedOrders);
-      } catch (err) {
-        console.warn('Could not load orders, using mock data:', err);
-        setOrders(MOCK_ORDERS);
-      } finally {
-        setFetchLoading(false);
-      }
-    };
     loadOrders();
   }, []);
 
-  if (fetchLoading) {
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadOrders(false);
+  };
+
+  const handleDownload = async (item: any) => {
+    try {
+      const res = await ordersApi.getLinks(item.id);
+      const url = res.data?.pdf_url || res.data?.png_url || item.pdf_url || item.png_url;
+      if (url) {
+        await Linking.openURL(url);
+      } else {
+        Alert.alert('Download', 'Files not ready yet. Please wait.');
+      }
+    } catch (e) {
+      Alert.alert('Download', 'Files not ready yet. Please wait.');
+    }
+  };
+
+  if (fetchLoading && !refreshing) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator size="large" color="#1A3C6E" />
@@ -73,7 +98,8 @@ const OrdersScreen = () => {
   const displayOrders = orders.length > 0 ? orders : MOCK_ORDERS;
   
   const filteredOrders = displayOrders.filter(order => {
-    const matchesFilter = activeFilter === 'All' || order.status === activeFilter;
+    const matchesFilter = activeFilter === 'All' || 
+                         order.status?.toLowerCase() === activeFilter.toLowerCase();
     const matchesSearch = order.id.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesFilter && matchesSearch;
   });
@@ -95,12 +121,15 @@ const OrdersScreen = () => {
         <View style={styles.orderFooter}>
           <Text style={styles.orderAmount}>{item.amount}</Text>
           <View style={styles.actionRow}>
-            {(item.status === 'Delivered' || item.status === 'completed' || item.pdf_url) && (
-              <TouchableOpacity style={styles.iconBtn}>
+            {(item.status?.toLowerCase() === 'delivered' || item.status?.toLowerCase() === 'completed' || item.pdf_url) && (
+              <TouchableOpacity style={styles.iconBtn} onPress={() => handleDownload(item)}>
                 <Ionicons name="download-outline" size={18} color={colours.primary} />
               </TouchableOpacity>
             )}
-            <TouchableOpacity style={[styles.iconBtn, styles.reorderBtn]}>
+            <TouchableOpacity 
+              style={[styles.iconBtn, styles.reorderBtn]}
+              onPress={() => router.push({ pathname: '/(design)/design-detail', params: { orderId: item.id } })}
+            >
               <Ionicons name="refresh-outline" size={18} color="#E67E22" />
             </TouchableOpacity>
           </View>
@@ -111,7 +140,7 @@ const OrdersScreen = () => {
 
   const getStatusColor = (status: string) => {
     const s = status?.toLowerCase() || '';
-    if (s.includes('deliver') || s.includes('complet') || s.includes('confirm')) return '#27AE60';
+    if (s.includes('deliver') || s.includes('complet') || s.includes('confirm') || s.includes('paid')) return '#27AE60';
     if (s.includes('approv') || s.includes('process')) return '#2E86C1';
     if (s.includes('draft') || s.includes('pend')) return '#7F8C8D';
     return '#F39C12';
@@ -140,7 +169,7 @@ const OrdersScreen = () => {
           {FilterTabs.map(tab => (
             <TouchableOpacity 
               key={tab} 
-              style={[styles.filterTab, activeFilter === tab && styles.activeFilterText ? {} : {}]}
+              style={[styles.filterTab]}
               onPress={() => setActiveFilter(tab)}
             >
               <Text style={[styles.filterText, activeFilter === tab && styles.activeFilterText]}>{tab}</Text>
@@ -155,6 +184,9 @@ const OrdersScreen = () => {
         renderItem={renderOrderItem}
         keyExtractor={item => item.id}
         contentContainerStyle={styles.listContent}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colours.primary]} />
+        }
         ListEmptyComponent={
           <View style={styles.emptyState}>
             <Ionicons name="cube-outline" size={80} color="#E8ECF0" />

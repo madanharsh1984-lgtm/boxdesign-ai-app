@@ -3,8 +3,17 @@ import { create } from 'zustand';
 import type { Order, PricingTier } from '@/types/order';
 import { ordersApi } from '@/services/api/orders';
 
+interface OrderStats {
+  total: number;
+  approved: number;
+  pending: number;
+  delivered: number;
+  draft: number;
+}
+
 interface OrderStore {
   orders:         Order[];
+  stats:          OrderStats | null;
   activeOrder:    Order | null;
   selectedTier:   PricingTier | null;
   isPaymentLoading: boolean;
@@ -18,6 +27,7 @@ interface OrderStore {
   setSelectedTier: (tier: PricingTier | null)  => void;
   setPaymentLoading: (v: boolean)              => void;
   fetchOrders:     () => Promise<void>;
+  fetchStats:      () => Promise<void>;
   fetchActiveOrder: (orderId: string) => Promise<void>;
 }
 
@@ -44,6 +54,7 @@ const mapOrder = (item: any): Order => ({
 
 export const useOrderStore = create<OrderStore>((set) => ({
   orders:           [],
+  stats:            null,
   activeOrder:      null,
   selectedTier:     null,
   isPaymentLoading: false,
@@ -78,6 +89,25 @@ export const useOrderStore = create<OrderStore>((set) => ({
       console.warn('fetchOrders failed', error);
     } finally {
       set({ isLoading: false });
+    }
+  },
+
+  fetchStats: async () => {
+    try {
+      const res = await ordersApi.stats();
+      if (res.data) {
+        set({
+          stats: {
+            total: res.data.total || 0,
+            approved: res.data.approved || 0,
+            pending: res.data.pending || 0,
+            delivered: res.data.delivered || 0,
+            draft: res.data.draft || 0,
+          }
+        });
+      }
+    } catch (error) {
+      console.warn('fetchStats failed', error);
     }
   },
 

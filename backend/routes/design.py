@@ -5,7 +5,7 @@ import tempfile
 import shutil
 import logging
 from fastapi import APIRouter, UploadFile, File, BackgroundTasks, HTTPException, Depends
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, List
 from sqlalchemy.orm import Session
 from utils.db import get_db
@@ -20,12 +20,12 @@ router = APIRouter()
 
 class DesignRequest(BaseModel):
     # Step 1 — dimensions
-    length_mm:    float
-    width_mm:     float
-    height_mm:    float
-    box_style:    str = "RSC"
-    quantity:     Optional[int] = None
-    weight_kg:    Optional[float] = 1.0
+    length_mm: float = Field(..., ge=1.0, le=9999.0)
+    width_mm:  float = Field(..., ge=1.0, le=9999.0)
+    height_mm: float = Field(..., ge=1.0, le=9999.0)
+    box_style: str = "RSC"
+    quantity:  Optional[int] = Field(None, ge=1, le=1000000)
+    weight_kg: Optional[float] = Field(1.0, ge=0.001, le=10000.0)
 
     # Step 3 — brand
     brand_name:   str

@@ -31,6 +31,19 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request, exc):
+    errors = exc.errors()
+    first = errors[0] if errors else {}
+    field = ".".join(str(x) for x in first.get("loc", [])[1:]) if first.get("loc") else "request"
+    return JSONResponse(
+        status_code=422,
+        content={"success": False, "error": first.get("msg", "Validation error"), "code": "VALIDATION_ERROR", "field": field}
+    )
+
 # ── CORS ──────────────────────────────────────────────────────────────────────
 app.add_middleware(
     CORSMiddleware,
