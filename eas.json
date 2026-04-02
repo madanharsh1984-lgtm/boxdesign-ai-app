@@ -1,6 +1,7 @@
 {
   "cli": {
-    "version": ">= 7.0.0"
+    "version": ">= 7.0.0",
+    "appVersionSource": "local"
   },
   "build": {
     "development": {
@@ -11,10 +12,14 @@
       "distribution": "internal",
       "android": {
         "buildType": "apk",
-        "image": "latest"
+        "image": "ubuntu-22.04-jdk-11-ndk-r21e"
       }
     },
-    "production": {}
+    "production": {
+      "android": {
+        "image": "ubuntu-22.04-jdk-11-ndk-r21e"
+      }
+    }
   },
   "submit": {
     "production": {}

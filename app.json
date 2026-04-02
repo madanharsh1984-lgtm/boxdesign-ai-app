@@ -54,6 +54,9 @@
       ]
     ],
     "scheme": "boxdesignai",
+    "runtimeVersion": {
+      "policy": "sdkVersion"
+    },
     "extra": {
       "eas": {
         "projectId": "b99fb9ee-7831-4815-9af6-7dd348f84a82"
