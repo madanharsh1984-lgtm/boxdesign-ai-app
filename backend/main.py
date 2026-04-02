@@ -11,8 +11,11 @@ Docs: http://localhost:8000/docs
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
+import logging
 
 load_dotenv()
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Import route modules
 from routes.auth    import router as auth_router
@@ -36,6 +39,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ── Startup: create DB tables ─────────────────────────────────────────────────
+@app.on_event("startup")
+async def startup_event():
+    try:
+        from utils.db import create_tables
+        create_tables()
+        logger.info("Database tables created/verified OK")
+    except Exception as e:
+        logger.warning(f"DB init warning (non-fatal): {e}")
 
 # ── Routes ────────────────────────────────────────────────────────────────────
 app.include_router(auth_router,    prefix="/v1/auth",    tags=["Authentication"])

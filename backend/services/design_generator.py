@@ -162,8 +162,9 @@ def generate_single_design(theme: str, request: Dict[str, str], api_key: str) ->
     Returns:
         A dictionary containing the generation result or error information.
     """
-    if not api_key or OpenAI is None:
-        logger.warning(f"Using mock fallback for theme: {theme}")
+    is_placeholder = not api_key or OpenAI is None or api_key.startswith("sk-YOUR") or len(api_key) < 20
+    if is_placeholder:
+        logger.warning(f"Using mock fallback for theme: {theme} (no valid API key)")
         return generate_mock_design(theme)
 
     try:

@@ -137,8 +137,8 @@ def verify_payment_signature(razorpay_order_id: str, razorpay_payment_id: str, r
     try:
         msg = f"{razorpay_order_id}|{razorpay_payment_id}"
         expected = hmac.new(
-            RAZORPAY_KEY_SECRET.encode(), 
-            msg.encode(), 
+            RAZORPAY_KEY_SECRET.encode(),
+            msg.encode(),
             hashlib.sha256
         ).hexdigest()
         

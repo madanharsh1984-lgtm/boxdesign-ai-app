@@ -72,7 +72,7 @@ async def search_competitor_packaging(product_name: str, category: str, serpapi_
     """
     Search for competitor packaging images using SerpAPI.
     """
-    if not serpapi_key:
+    if not serpapi_key or serpapi_key.startswith("YOUR") or len(serpapi_key) < 10:
         logger.warning("SerpAPI key missing. Returning placeholders.")
         return [
             {"title": "Sample Food Packaging", "original": "https://images.unsplash.com/photo-1500915001467-99a64294d30c", "thumbnail": "https://images.unsplash.com/photo-1500915001467-99a64294d30c?w=200", "source": "Unsplash"},
@@ -110,7 +110,7 @@ async def fetch_product_information(product_name: str, category: str, openai_key
     """
     Generate product marketing and compliance information using OpenAI GPT-4o.
     """
-    if not openai_key or not AsyncOpenAI:
+    if not openai_key or not AsyncOpenAI or openai_key.startswith("sk-YOUR") or len(openai_key) < 20:
         logger.warning("OpenAI key missing or client not available. Returning defaults.")
         return CATEGORY_DEFAULTS.get(category, CATEGORY_DEFAULTS["Other"])
 

@@ -1,0 +1,81 @@
+=================================================================
+  BoxDesign AI — Backend Test Suite
+=================================================================
+
+[1] Health Checks
+  [PASS] GET /  (root health) (HTTP 200)  => running
+  [PASS] GET /v1/health (HTTP 200)
+
+[2] Pricing & Promo Codes
+  [PASS] Basic Rs.299 (no promo) (HTTP 200)  => base=299 gst=54 total=353 INR
+  [PASS] Standard Rs.799 + FIRST50 (disc=Rs.200) (HTTP 200)  => base=799 disc=200 total=707
+  [PASS] Premium Rs.1499 + LAUNCH100 (disc=Rs.100) (HTTP 200)  => disc=100 total=1651
+  [PASS] Invalid tier → 400 error (HTTP 400)
+
+[3] Design Generation Pipeline
+  [PASS] POST /generate → returns job_id (HTTP 200)  => 0c170432-f08
+  [PASS] GET /status (immediate) (HTTP 200)  => status=complete progress=100%
+  [INFO] Waiting for mock generation to complete (up to 20s)...
+  [PASS] GET /status → complete (HTTP 200)  => status=complete progress=100%
+  [PASS] GET /result → 10 designs (HTTP 200)  => 10 designs
+  [PASS] All 10 themes in result (HTTP 200)  => Industrial, Minimalist, Bold, Pattern, Premium...
+  [PASS] All designs have SVG image_url (mock) (HTTP 200)
+
+[4] Web Research Service
+  [PASS] POST /research → competitor_images + product_info (HTTP 200)  => images=3 taglines=['Freshly Sourced']
+  [PASS] Research → certifications present (HTTP 200)  => ['FSSAI', 'ISO 22000']
+  [PASS] POST /research Electronics category (HTTP 200)  => ['Innovation Redefined']
+
+[5] Unit Tests (no HTTP)
+  [PASS] build_design_prompt — contains brand_name (HTTP 200)
+  [PASS] build_design_prompt — contains CMYK (HTTP 200)
+  [PASS] build_design_prompt — contains 300 DPI (HTTP 200)
+  [PASS] THEME_PROMPTS has all 10 themes (HTTP 200)  => ['Minimalist', 'Bold', 'Premium', 'Earthy', 'Industrial', 'Playful', 'Monochrome', 'Gradient', 'Pattern', 'Brand-matched']
+  [PASS] generate_mock_design — all 10 themes OK (HTTP 200)
+WARNING:root:rembg library not found. Background removal will be skipped.
+  [PASS] assess_quality — 800x600 grey image (low_res expected) (HTTP 200)  => score=0.3 issues=['low_res', 'blurry']
+  [PASS] assess_quality — 1200x1000 (>=1MP, not low_res) (HTTP 200)  => score=0.6 issues=['blurry']
+  [PASS] enhance_image — upscale + sharpen (HTTP 200)  => output=8509 bytes
+INFO:services.payment_service:Calculated amount for tier standard with promo LAUNCH100: 825 INR
+  [PASS] calculate_order_amount standard+LAUNCH100 (HTTP 200)  => {'tier': 'standard', 'base_inr': 799, 'discount_inr': 100, 'gst_inr': 126, 'total_inr': 825, 'total_paise': 82500}
+WARNING:services.payment_service:RAZORPAY_KEY_SECRET not found. Bypassing signature verification (Dev Mode).
+  [PASS] verify_payment_signature (dev mode, no secret → True) (HTTP 200)
+INFO:services.payment_service:Generated invoice data for BDAI-202604-ABC123
+  [PASS] generate_gst_invoice — invoice number format (HTTP 200)  => BDAI-202604-ABC123
+  [PASS] generate_gst_invoice — HSN code 998314 (HTTP 200)
+  [PASS] generate_svg — returns SVG string (HTTP 200)  => 2887 chars
+
+=================================================================
+  FINAL RESULTS
+=================================================================
+  PASS  GET /  (root health)
+  PASS  GET /v1/health
+  PASS  Basic Rs.299 (no promo)
+  PASS  Standard Rs.799 + FIRST50 (disc=Rs.200)
+  PASS  Premium Rs.1499 + LAUNCH100 (disc=Rs.100)
+  PASS  Invalid tier → 400 error
+  PASS  POST /generate → returns job_id
+  PASS  GET /status (immediate)
+  PASS  GET /status → complete
+  PASS  GET /result → 10 designs
+  PASS  All 10 themes in result
+  PASS  All designs have SVG image_url (mock)
+  PASS  POST /research → competitor_images + product_info
+  PASS  Research → certifications present
+  PASS  POST /research Electronics category
+  PASS  build_design_prompt — contains brand_name
+  PASS  build_design_prompt — contains CMYK
+  PASS  build_design_prompt — contains 300 DPI
+  PASS  THEME_PROMPTS has all 10 themes
+  PASS  generate_mock_design — all 10 themes OK
+  PASS  assess_quality — 800x600 grey image (low_res expected)
+  PASS  assess_quality — 1200x1000 (>=1MP, not low_res)
+  PASS  enhance_image — upscale + sharpen
+  PASS  calculate_order_amount standard+LAUNCH100
+  PASS  verify_payment_signature (dev mode, no secret → True)
+  PASS  generate_gst_invoice — invoice number format
+  PASS  generate_gst_invoice — HSN code 998314
+  PASS  generate_svg — returns SVG string
+=================================================================
+  28 PASSED  |  0 FAILED  |  28 TOTAL
+=================================================================
