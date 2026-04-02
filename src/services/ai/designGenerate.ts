@@ -1,0 +1,1 @@
+export const generateDesign = () => {}; // Design generation API calls

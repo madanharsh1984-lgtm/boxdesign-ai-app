@@ -1,0 +1,61 @@
+{
+  "expo": {
+    "name": "BoxDesign AI",
+    "slug": "boxdesign-ai",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": false,
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1A3C6E"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.boxdesignai.app",
+      "buildNumber": "1"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1A3C6E"
+      },
+      "package": "com.boxdesignai.app",
+      "versionCode": 1,
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "INTERNET",
+        "ACCESS_NETWORK_STATE"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "BoxDesign AI needs camera access to photograph your product for packaging design."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "BoxDesign AI needs photo library access to select product images."
+        }
+      ]
+    ],
+    "scheme": "boxdesignai",
+    "extra": {
+      "eas": {
+        "projectId": "boxdesign-ai-project"
+      }
+    }
+  }
+}

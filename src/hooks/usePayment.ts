@@ -1,0 +1,1 @@
+export const usePayment = () => {}; // Razorpay payment hook

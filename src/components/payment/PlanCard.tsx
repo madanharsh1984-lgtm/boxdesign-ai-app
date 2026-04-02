@@ -1,0 +1,1 @@
+export const PlanCard = () => null; // Pricing plan card

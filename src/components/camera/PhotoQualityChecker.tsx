@@ -1,0 +1,1 @@
+export const PhotoQualityChecker = () => null; // Quality assessment display

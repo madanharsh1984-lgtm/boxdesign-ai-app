@@ -1,0 +1,1 @@
+export const filesApi = {}; // File download endpoints

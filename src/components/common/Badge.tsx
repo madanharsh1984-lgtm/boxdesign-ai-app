@@ -1,0 +1,1 @@
+export const Badge = () => null; // Status badge (Draft/Approved/Delivered)

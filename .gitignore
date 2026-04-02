@@ -1,0 +1,46 @@
+# ─── Node / Expo ─────────────────────────────────────────────────────────────
+node_modules/
+.expo/
+dist/
+web-build/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# ─── Env & Secrets ───────────────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+
+# ─── Python Backend ──────────────────────────────────────────────────────────
+backend/venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/**/*.pyc
+backend/.env
+*.pyc
+*.pyo
+
+# ─── OS files ─────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ─── IDE ─────────────────────────────────────────────────────────────────────
+.vscode/settings.json
+.idea/
+
+# ─── Design files (large binaries — store in cloud) ──────────────────────────
+*.cdr
+*.psd
+*.ai
+
+# ─── Logs ─────────────────────────────────────────────────────────────────────
+*.log
+logs/

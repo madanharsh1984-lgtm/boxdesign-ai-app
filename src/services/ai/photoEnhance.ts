@@ -1,0 +1,1 @@
+export const enhancePhoto = () => {}; // Photo enhancement API calls

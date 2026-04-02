@@ -1,0 +1,1 @@
+export const CameraCapture = () => null; // Camera component with overlay

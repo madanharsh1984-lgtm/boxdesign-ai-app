@@ -1,0 +1,1 @@
+export const DesignCard = () => null; // Single design card in gallery

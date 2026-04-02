@@ -1,0 +1,1 @@
+export const RazorpayButton = () => null; // Payment trigger button

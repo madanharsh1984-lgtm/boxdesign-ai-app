@@ -1,0 +1,1 @@
+export const DielinePreview = () => null; // SVG dieline diagram

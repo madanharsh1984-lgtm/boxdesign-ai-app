@@ -1,0 +1,1 @@
+export const ARViewer = () => null; // AR camera view component

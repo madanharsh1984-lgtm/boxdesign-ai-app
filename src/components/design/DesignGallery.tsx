@@ -1,0 +1,1 @@
+export const DesignGallery = () => null; // 2-col grid of design cards

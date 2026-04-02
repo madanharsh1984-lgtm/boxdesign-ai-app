@@ -1,0 +1,1 @@
+export const fetchResearch = () => {}; // SerpAPI + GPT web research

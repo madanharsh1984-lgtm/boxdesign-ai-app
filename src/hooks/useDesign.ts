@@ -1,0 +1,1 @@
+export const useDesign = () => {}; // Design generation hook

@@ -1,0 +1,1 @@
+export const firebaseAuth = {}; // Firebase OTP + Google SSO

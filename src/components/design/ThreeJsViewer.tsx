@@ -1,0 +1,1 @@
+export const ThreeJsViewer = () => null; // 3D box WebView component

@@ -1,0 +1,1 @@
+export const BeforeAfterSlider = () => null; // Photo enhancement slider

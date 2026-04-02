@@ -1,0 +1,1 @@
+def enhance_photo(): pass
