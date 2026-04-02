@@ -1,1 +1,0 @@
-# BoxDesign AI Backend\nFastAPI service for AI processing.

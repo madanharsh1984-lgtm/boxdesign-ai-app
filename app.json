@@ -25,11 +25,13 @@
       "package": "com.boxdesignai.app",
       "versionCode": 1,
       "permissions": [
-        "CAMERA",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE",
-        "INTERNET",
-        "ACCESS_NETWORK_STATE"
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.INTERNET",
+        "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "web": {
@@ -54,7 +56,10 @@
     "scheme": "boxdesignai",
     "extra": {
       "eas": {
-        "projectId": "boxdesign-ai-project"
+        "projectId": "b99fb9ee-7831-4815-9af6-7dd348f84a82"
+      },
+      "router": {
+        "origin": false
       }
     }
   }

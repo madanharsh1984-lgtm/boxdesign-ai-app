@@ -4,8 +4,12 @@ import {
   Easing, Dimensions, TouchableOpacity, Alert, StatusBar,
 } from 'react-native';
 import { router } from 'expo-router';
+import LottieView from 'lottie-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 import { useDesignStore } from '@/store/designStore';
 import { designApi } from '@/services/api/design';
+import { colours } from '@/theme/colours';
 
 const { width } = Dimensions.get('window');
 
@@ -33,7 +37,6 @@ const GeneratingScreen = () => {
   const [progressPct, setProgressPct] = useState(0);
   const [currentStep, setCurrentStep] = useState('Starting generation...');
 
-  const rotateAnim = useRef(new Animated.Value(0)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
   const stepOpacity = useRef(new Animated.Value(1)).current;
 
@@ -48,13 +51,6 @@ const GeneratingScreen = () => {
   }, [progressPct]);
 
   useEffect(() => {
-    // Rotation animation
-    Animated.loop(
-      Animated.timing(rotateAnim, {
-        toValue: 1, duration: 2000, easing: Easing.linear, useNativeDriver: true,
-      })
-    ).start();
-
     // Step text cycling
     const stepInterval = setInterval(() => {
       Animated.timing(stepOpacity, {
@@ -146,31 +142,36 @@ const GeneratingScreen = () => {
     );
   };
 
-  const spin = rotateAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
   const progressWidth = progressAnim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] });
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" />
-      <View style={styles.centerContent}>
-        <Animated.View style={[styles.boxContainer, { transform: [{ rotateY: spin }, { rotateX: spin }] }]}>
-          <View style={styles.boxFace} />
-        </Animated.View>
-        <Animated.Text style={[styles.stepText, { opacity: stepOpacity }]}>
-          {currentStep || FALLBACK_STEPS[currentStepIndex]}
-        </Animated.Text>
-        <Text style={styles.subtitle}>{progressPct}% complete</Text>
-        <View style={styles.progressTrack}>
-          <Animated.View style={[styles.progressBar, { width: progressWidth }]} />
+    <LinearGradient colors={['#0D1B2A', '#1A3C6E']} style={{ flex: 1 }}>
+      <SafeAreaView style={[styles.container, { backgroundColor: 'transparent' }]}>
+        <StatusBar barStyle="light-content" />
+        <View style={styles.centerContent}>
+          <BlurView intensity={80} tint="light" style={styles.glowCircle} />
+          <LottieView
+            source={require('@/assets/lottie/ai-scanning.json')}
+            autoPlay
+            loop
+            style={styles.lottie}
+          />
+          <Animated.Text style={[styles.stepText, { opacity: stepOpacity }]}>
+            {currentStep || FALLBACK_STEPS[currentStepIndex]}
+          </Animated.Text>
+          <Text style={styles.subtitle}>{progressPct}% complete</Text>
+          <View style={styles.progressTrack}>
+            <Animated.View style={[styles.progressBar, { width: progressWidth }]} />
+          </View>
         </View>
-      </View>
-      <View style={styles.factCard}>
-        <Text style={styles.factText}>{FUN_FACTS[currentFactIndex]}</Text>
-      </View>
-      <TouchableOpacity style={styles.cancelLink} onPress={handleCancel}>
-        <Text style={styles.cancelText}>Cancel</Text>
-      </TouchableOpacity>
-    </SafeAreaView>
+        <View style={styles.factCard}>
+          <Text style={styles.factText}>{FUN_FACTS[currentFactIndex]}</Text>
+        </View>
+        <TouchableOpacity style={styles.cancelLink} onPress={handleCancel}>
+          <Text style={styles.cancelText}>Cancel</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    </LinearGradient>
   );
 };
 
@@ -185,20 +186,27 @@ const styles = StyleSheet.create({
   },
   centerContent: {
     alignItems: 'center',
-    marginTop: 100,
+    marginTop: 80,
   },
-  boxContainer: {
-    width: 80,
-    height: 80,
+  lottie: {
+    width: 200,
+    height: 200,
     marginBottom: 40,
   },
-  boxFace: {
-    width: 80,
-    height: 80,
-    backgroundColor: '#E67E22',
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
+  glowCircle: {
+    position: 'absolute',
+    top: 50,
+    width: 100,
+    height: 100,
+    backgroundColor: 'rgba(58, 134, 255, 0.4)',
+    borderRadius: 50,
+    overflow: 'hidden',
+    // Glow Effect
+    shadowColor: '#3A86FF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 60,
+    elevation: 20,
   },
   stepText: {
     fontSize: 20,

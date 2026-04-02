@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { MotiView } from 'moti';
 import { colours } from '@/theme/colours';
 import { typography } from '@/theme/typography';
 import { spacing } from '@/theme/spacing';
@@ -104,12 +105,17 @@ export default function GalleryScreen() {
     );
   };
 
-  const renderDesignCard = ({ item }: { item: DesignThemeResult }) => {
+  const renderDesignCard = ({ item, index }: { item: DesignThemeResult, index: number }) => {
     const isSelected = selectedIds.includes(item.id);
     const isFavourite = item.isFavourite;
 
     return (
-      <View style={styles.card}>
+      <MotiView 
+        from={{opacity:0, scale:0.8}} 
+        animate={{opacity:1, scale:1}} 
+        transition={{delay: index * 100}}
+        style={styles.card}
+      >
         <TouchableOpacity 
           style={[styles.thumbnail, { backgroundColor: item.thumbnailColor || '#1A3C6E' }]}
           onPress={() => {
@@ -158,7 +164,7 @@ export default function GalleryScreen() {
             <Text style={styles.outlineButtonText}>View in 3D</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </MotiView>
     );
   };
 
@@ -199,7 +205,7 @@ export default function GalleryScreen() {
 
       <FlatList
         data={filteredData}
-        renderItem={renderDesignCard}
+        renderItem={({ item, index }) => renderDesignCard({ item, index })}
         keyExtractor={item => item.id}
         numColumns={2}
         contentContainerStyle={styles.gridContent}

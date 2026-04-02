@@ -1,1 +1,0 @@
-fastapi\nuvicorn\nsqlalchemy\npsycopg2-binary\nrembg\npillow\nopenai\nserpapi\nrazorpay\nboto3\npython-dotenv

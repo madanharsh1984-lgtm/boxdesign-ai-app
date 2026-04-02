@@ -6,6 +6,9 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { router } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
+import { MotiView } from 'moti';
+import * as Haptics from 'expo-haptics';
 import { useAuthStore }  from '@/store/authStore';
 import { useOrderStore } from '@/store/orderStore';
 import { colours }       from '@/theme/colours';
@@ -62,7 +65,10 @@ export default function HomeScreen() {
       <StatusBar barStyle="light-content" backgroundColor={colours.primary} />
 
       {/* Header */}
-      <View style={styles.header}>
+      <LinearGradient
+        colors={['#1A3C6E', '#295493']}
+        style={styles.header}
+      >
         <View>
           <Text style={styles.greeting}>
             Hello, {user?.profile?.contactName ?? 'there'} 👋
@@ -79,7 +85,7 @@ export default function HomeScreen() {
             {(user?.profile?.contactName ?? 'U')[0].toUpperCase()}
           </Text>
         </TouchableOpacity>
-      </View>
+      </LinearGradient>
 
       <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
         {/* Stats row */}
@@ -88,18 +94,27 @@ export default function HomeScreen() {
             { label: 'Total Designs', value: totalDesigns },
             { label: 'Approved',      value: approvedCount },
             { label: 'Pending',       value: pendingCount  },
-          ].map((s) => (
-            <View key={s.label} style={styles.statCard}>
+          ].map((s, index) => (
+            <MotiView 
+              key={s.label} 
+              style={styles.statCard}
+              from={{ opacity: 0, translateY: 20 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{ delay: 100 * (index + 1) }}
+            >
               <Text style={styles.statValue}>{s.value}</Text>
               <Text style={styles.statLabel}>{s.label}</Text>
-            </View>
+            </MotiView>
           ))}
         </View>
 
         {/* New Design CTA */}
         <TouchableOpacity
           style={styles.ctaButton}
-          onPress={() => router.push('/(design)/step1-dimensions')}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.push('/(design)/step1-dimensions');
+          }}
           activeOpacity={0.85}
         >
           <Text style={styles.ctaIcon}>＋</Text>
@@ -138,7 +153,6 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colours.bg },
   header: {
-    backgroundColor: colours.primary,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -163,10 +177,12 @@ const styles = StyleSheet.create({
   statCard: {
     flex: 1,
     backgroundColor: colours.bgCard,
-    borderRadius: borderRadius.md,
+    borderRadius: borderRadius.lg,
     padding: spacing.md,
     alignItems: 'center',
-    ...shadow.sm,
+    ...shadow.md,
+    borderWidth: 1,
+    borderColor: '#f0f0f0',
   },
   statValue: { fontSize: fontSize.xl, fontWeight: fontWeight.bold, color: colours.primary },
   statLabel: { fontSize: fontSize.xs, color: colours.textSecondary, marginTop: 2 },

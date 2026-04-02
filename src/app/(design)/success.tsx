@@ -12,6 +12,8 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import LottieView from 'lottie-react-native';
+import { MotiView } from 'moti';
 import { colours } from '@/theme/colours';
 import { typography } from '@/theme/typography';
 import { spacing } from '@/theme/spacing';
@@ -23,7 +25,6 @@ const SuccessScreen = () => {
   const { request, resetRequest } = useDesignStore();
   const orderStore = useOrderStore();
   const { activeOrder } = orderStore;
-  const scaleAnim = useRef(new Animated.Value(0)).current;
 
   // Real file data from store
   const fileLinks = [
@@ -34,12 +35,6 @@ const SuccessScreen = () => {
   const isGenerating = activeOrder?.status === 'generating';
 
   useEffect(() => {
-    Animated.timing(scaleAnim, {
-      toValue: 1,
-      duration: 600,
-      useNativeDriver: true,
-    }).start();
-
     // Refresh if generating
     if (isGenerating && activeOrder?.id) {
       const timer = setInterval(() => {
@@ -74,9 +69,12 @@ const SuccessScreen = () => {
       <View style={styles.navyHeader}>
         <SafeAreaView>
           <View style={styles.headerContent}>
-            <Animated.View style={[styles.checkCircle, { transform: [{ scale: scaleAnim }] }]}>
-              <Ionicons name="checkmark" size={60} color={colours.success} />
-            </Animated.View>
+            <LottieView
+              source={require('@/assets/lottie/success-check.json')}
+              autoPlay
+              loop={false}
+              style={styles.lottie}
+            />
             <Text style={styles.title}>Your design is ready!</Text>
             <Text style={styles.subtitle}>Files sent to your email</Text>
           </View>
@@ -88,8 +86,14 @@ const SuccessScreen = () => {
         <View style={styles.downloadCard}>
           <Text style={styles.cardTitle}>Download Your Files</Text>
           
-          {fileLinks.map((f) => (
-            <View key={f.type} style={styles.fileRow}>
+          {fileLinks.map((f, index) => (
+            <MotiView 
+              key={f.type} 
+              from={{ opacity: 0, translateY: 20 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{ delay: index * 100 }}
+              style={styles.fileRow}
+            >
               <View style={styles.fileInfo}>
                 <Ionicons name={f.icon} size={24} color={colours.primary} />
                 <View style={styles.fileTextContainer}>
@@ -103,7 +107,7 @@ const SuccessScreen = () => {
               >
                 <Text style={styles.downloadBtnText}>{f.url ? 'Download' : '...'}</Text>
               </TouchableOpacity>
-            </View>
+            </MotiView>
           ))}
 
           {isGenerating && (
@@ -177,14 +181,10 @@ const styles = StyleSheet.create({
   headerContent: {
     alignItems: 'center',
   },
-  checkCircle: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.l,
+  lottie: {
+    width: 150,
+    height: 150,
+    marginBottom: 0,
   },
   title: {
     ...typography.h2,

@@ -18,12 +18,11 @@ yarn-error.*
 .env.local
 .env.*.local
 
-# ─── Python Backend ──────────────────────────────────────────────────────────
-backend/venv/
-backend/__pycache__/
-backend/**/__pycache__/
-backend/**/*.pyc
-backend/.env
+# ─── Python Backend (excluded from EAS build — server-side only) ─────────────
+backend/
+scripts/
+docs/
+admin-portal/
 *.pyc
 *.pyo
 

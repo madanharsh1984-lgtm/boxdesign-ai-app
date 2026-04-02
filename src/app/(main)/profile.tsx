@@ -13,6 +13,8 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { LinearGradient } from 'expo-linear-gradient';
+import { MotiView } from 'moti';
 import { colours } from '@/theme/colours';
 import { typography } from '@/theme/typography';
 import { spacing } from '@/theme/spacing';
@@ -139,8 +141,11 @@ const ProfileScreen = () => {
         </View>
       )}
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Navy Top Section */}
-        <View style={styles.topSection}>
+        {/* Gradient Top Section */}
+        <LinearGradient
+          colors={['#1A3C6E', '#295493']}
+          style={styles.topSection}
+        >
           <SafeAreaView style={styles.safeArea}>
             <View style={styles.profileHeader}>
               <View style={styles.avatar}>
@@ -153,52 +158,82 @@ const ProfileScreen = () => {
               </TouchableOpacity>
             </View>
           </SafeAreaView>
-        </View>
+        </LinearGradient>
 
         {/* Settings Sections */}
         <View style={styles.content}>
-          <SectionHeader label="BRAND ASSETS" />
-          <SettingsRow icon="🖼️" label="Logo" onPress={handleLogoUpload} showChevron />
-          <SettingsRow icon="🎨" label="Colours" onPress={() => {}} showChevron />
-          <SettingsRow icon="📐" label="Patterns" onPress={() => {}} showChevron />
+          <MotiView 
+            from={{ opacity: 0, translateY: 10 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ delay: 100 }}
+          >
+            <SectionHeader label="BRAND ASSETS" />
+            <SettingsRow icon="🖼️" label="Logo" onPress={handleLogoUpload} showChevron />
+            <SettingsRow icon="🎨" label="Colours" onPress={() => {}} showChevron />
+            <SettingsRow icon="📐" label="Patterns" onPress={() => {}} showChevron />
+          </MotiView>
 
-          <SectionHeader label="SUBSCRIPTION" />
-          <View style={styles.subscriptionCard}>
-            <View>
-              <Text style={styles.planStatus}>Free Trial</Text>
-              <Text style={styles.planSubtext}>Ends in 5 days</Text>
+          <MotiView 
+            from={{ opacity: 0, translateY: 10 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ delay: 200 }}
+          >
+            <SectionHeader label="SUBSCRIPTION" />
+            <View style={styles.subscriptionCard}>
+              <View>
+                <Text style={styles.planStatus}>Free Trial</Text>
+                <Text style={styles.planSubtext}>Ends in 5 days</Text>
+              </View>
+              <TouchableOpacity style={styles.upgradeBtn}>
+                <Text style={styles.upgradeBtnText}>Upgrade</Text>
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity style={styles.upgradeBtn}>
-              <Text style={styles.upgradeBtnText}>Upgrade</Text>
-            </TouchableOpacity>
-          </View>
+          </MotiView>
 
-          <SectionHeader label="PREFERENCES" />
-          <SettingsRow 
-            icon="🔔" 
-            label="Notifications" 
-            rightElement={
-              <Switch 
-                value={notificationsEnabled} 
-                onValueChange={setNotificationsEnabled}
-                trackColor={{ false: '#D1D5DB', true: '#2E86C1' }}
-              />
-            } 
-          />
-          <SettingsRow icon="🌐" label="Language" value="English" onPress={() => {}} showChevron />
+          <MotiView 
+            from={{ opacity: 0, translateY: 10 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ delay: 300 }}
+          >
+            <SectionHeader label="PREFERENCES" />
+            <SettingsRow 
+              icon="🔔" 
+              label="Notifications" 
+              rightElement={
+                <Switch 
+                  value={notificationsEnabled} 
+                  onValueChange={setNotificationsEnabled}
+                  trackColor={{ false: '#D1D5DB', true: '#2E86C1' }}
+                />
+              } 
+            />
+            <SettingsRow icon="🌐" label="Language" value="English" onPress={() => {}} showChevron />
+          </MotiView>
 
-          <SectionHeader label="SUPPORT" />
-          <SettingsRow icon="💬" label="Help & Support" onPress={() => {}} showChevron />
-          <SettingsRow icon="⭐" label="Rate the App" onPress={() => {}} showChevron />
-          <SettingsRow icon="ℹ️" label="About" onPress={() => {}} showChevron />
+          <MotiView 
+            from={{ opacity: 0, translateY: 10 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ delay: 400 }}
+          >
+            <SectionHeader label="SUPPORT" />
+            <SettingsRow icon="💬" label="Help & Support" onPress={() => {}} showChevron />
+            <SettingsRow icon="⭐" label="Rate the App" onPress={() => {}} showChevron />
+            <SettingsRow icon="ℹ️" label="About" onPress={() => {}} showChevron />
+          </MotiView>
 
-          <SectionHeader label="ACCOUNT" />
-          <SettingsRow 
-            icon="🚪" 
-            label="Logout" 
-            labelStyle={{ color: '#E74C3C' }} 
-            onPress={handleLogout} 
-          />
+          <MotiView 
+            from={{ opacity: 0, translateY: 10 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ delay: 500 }}
+          >
+            <SectionHeader label="ACCOUNT" />
+            <SettingsRow 
+              icon="🚪" 
+              label="Logout" 
+              labelStyle={{ color: '#E74C3C' }} 
+              onPress={handleLogout} 
+            />
+          </MotiView>
 
           <Text style={styles.version}>BoxDesign AI v1.0.0</Text>
         </View>
@@ -250,7 +285,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   topSection: {
-    backgroundColor: '#1A3C6E',
     height: 240,
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
