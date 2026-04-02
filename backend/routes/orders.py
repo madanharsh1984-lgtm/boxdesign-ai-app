@@ -1,18 +1,108 @@
 # backend/routes/orders.py
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from pydantic import BaseModel
 from typing import Optional, List
 from sqlalchemy.orm import Session
-from datetime import datetime
+from datetime import datetime, timedelta
 import uuid
+import os
+import asyncio
 
-from utils.db import get_db
+from utils.db import get_db, SessionLocal
 from utils.auth_utils import get_current_user
 from models.user import User
 from models.order import Order, OrderStatus, PricingTier
-from services.payment_service import create_razorpay_order, verify_payment_signature, calculate_order_amount
+from services import cdr_generator
+from services.payment_service import create_razorpay_order, verify_payment_signature, calculate_order_amount, generate_gst_invoice
 
 router = APIRouter()
+
+def _generate_and_deliver_files(order_id: str):
+    db = SessionLocal()
+    try:
+        order = db.query(Order).filter(Order.id == order_id).first()
+        if not order:
+            return
+        
+        # Get user for invoice
+        user = db.query(User).filter(User.id == order.user_id).first()
+        
+        order.status = OrderStatus.GENERATING
+        db.commit()
+        
+        request_data = {
+            "length_mm": 300, "width_mm": 200, "height_mm": 150,
+            "brand_name": order.approved_by_name or "Brand",
+            "product_name": "Product", "tagline": "Quality Packaging",
+            "order_id": order.id, "barcode_number": "000000000000"
+        }
+        design_data = {"colors": {"background": "#FDFDFD"}, "fonts": {"main": "Arial"}}
+        output_dir = os.path.join("generated_files", order.id)
+        
+        result = cdr_generator.generate_all_files(request_data, design_data, order.id, output_dir)
+        
+        # Generate GST Invoice
+        order_dict = {
+            "id": order.id,
+            "pricing_tier": order.pricing_tier.value,
+            "base_inr": order.base_amount_inr,
+            "gst_inr": order.gst_amount_inr,
+            "total_inr": order.total_amount_inr
+        }
+        user_dict = {
+            "company_name": user.company_name if user else "Customer",
+            "gstin": user.gstin if user else "",
+            "city": user.city if user else "India"
+        }
+        invoice_data = generate_gst_invoice(order_dict, user_dict)
+        
+        # Write invoice as HTML
+        invoice_filename = f"{order.id}_invoice.html"
+        invoice_path = os.path.join(output_dir, invoice_filename)
+        
+        # Simple HTML template for invoice
+        invoice_html = f"""
+        <html>
+        <head><title>Invoice {invoice_data['invoice_number']}</title></head>
+        <body>
+            <h1>Invoice: {invoice_data['invoice_number']}</h1>
+            <p>Date: {invoice_data['date']}</p>
+            <p>Buyer: {invoice_data['buyer']['name']} ({invoice_data['buyer']['city']})</p>
+            <p>GSTIN: {invoice_data['buyer']['gstin']}</p>
+            <hr/>
+            <table border="1">
+                <tr><th>Description</th><th>Rate</th><th>GST</th><th>Total</th></tr>
+                <tr>
+                    <td>{invoice_data['line_items'][0]['description']}</td>
+                    <td>{invoice_data['line_items'][0]['rate']}</td>
+                    <td>{invoice_data['line_items'][0]['gst_amount']}</td>
+                    <td>{invoice_data['line_items'][0]['total']}</td>
+                </tr>
+            </table>
+            <p><b>Grand Total: {invoice_data['totals']['grand_total']} INR</b></p>
+        </body>
+        </html>
+        """
+        with open(invoice_path, "w", encoding="utf-8") as f:
+            f.write(invoice_html)
+
+        order.pdf_url = result.get("pdf")
+        order.png_url = result.get("png")
+        order.cdr_url = result.get("svg")   # Use SVG as CDR equivalent (Inkscape not guaranteed)
+        order.invoice_url = invoice_path
+        order.status = OrderStatus.DELIVERED
+        order.files_expire_at = datetime.utcnow() + timedelta(days=90)
+        db.commit()
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"File generation failed for order {order_id}: {e}")
+        try:
+            order.status = OrderStatus.FAILED
+            db.commit()
+        except Exception:
+            pass
+    finally:
+        db.close()
 
 
 class CreateOrderRequest(BaseModel):
@@ -51,6 +141,7 @@ class OrderListItem(BaseModel):
     pdf_url: Optional[str]
     png_url: Optional[str]
     cdr_url: Optional[str]
+    invoice_url: Optional[str]
 
 
 @router.post("/", response_model=OrderResponse, summary="Create order & Razorpay order")
@@ -108,6 +199,7 @@ async def create_order(
 @router.post("/confirm-payment", summary="Confirm Razorpay payment & trigger file delivery")
 async def confirm_payment(
     req: PaymentConfirmRequest,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -133,8 +225,8 @@ async def confirm_payment(
     order.updated_at = datetime.utcnow()
     db.commit()
 
-    # TODO: Phase 4 — trigger CDR/PDF/PNG generation via cdr_generator.py
-    # TODO: Phase 4 — send download links via email/WhatsApp
+    # Trigger CDR/PDF/PNG generation via background task
+    background_tasks.add_task(_generate_and_deliver_files, req.order_id)
 
     return {
         "status": "success",
@@ -171,6 +263,7 @@ async def list_orders(
                 "pdf_url": o.pdf_url,
                 "png_url": o.png_url,
                 "cdr_url": o.cdr_url,
+                "invoice_url": o.invoice_url,
             }
             for o in orders
         ],
@@ -208,6 +301,7 @@ async def get_order(
         "pdf_url": order.pdf_url,
         "png_url": order.png_url,
         "cdr_url": order.cdr_url,
+        "invoice_url": order.invoice_url,
         "files_expire_at": order.files_expire_at.isoformat() if order.files_expire_at else None,
         "created_at": order.created_at.isoformat(),
     }

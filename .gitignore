@@ -44,3 +44,11 @@ desktop.ini
 # ─── Logs ─────────────────────────────────────────────────────────────────────
 *.log
 logs/
+
+# ─── SQLite dev & test databases ─────────────────────────────────────────────
+*.db
+*.sqlite
+*.sqlite3
+
+# ─── Generated packaging files (runtime output) ──────────────────────────────
+backend/generated_files/

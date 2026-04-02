@@ -8,6 +8,7 @@ import {
   Animated,
   ScrollView,
   Alert,
+  Linking,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,14 +16,22 @@ import { colours } from '@/theme/colours';
 import { typography } from '@/theme/typography';
 import { spacing } from '@/theme/spacing';
 import { useDesignStore } from '@/store/designStore';
+import { useOrderStore } from '@/store/orderStore';
 
 const SuccessScreen = () => {
   const router = useRouter();
   const { request, resetRequest } = useDesignStore();
+  const orderStore = useOrderStore();
+  const { activeOrder } = orderStore;
   const scaleAnim = useRef(new Animated.Value(0)).current;
 
-  // Mock plan details for demo
-  const files = ['PDF', 'PNG', 'CDR'];
+  // Real file data from store
+  const fileLinks = [
+    { type: 'PDF', url: activeOrder?.pdfUrl || null, icon: 'document-text' as const },
+    { type: 'PNG', url: activeOrder?.pngUrl || null, icon: 'image' as const },
+    { type: 'CDR/SVG', url: activeOrder?.cdrUrl || null, icon: 'document' as const },
+  ];
+  const isGenerating = activeOrder?.status === 'generating';
 
   useEffect(() => {
     Animated.timing(scaleAnim, {
@@ -30,10 +39,22 @@ const SuccessScreen = () => {
       duration: 600,
       useNativeDriver: true,
     }).start();
-  }, []);
 
-  const handleDownload = (type: string) => {
-    Alert.alert('Download', `Downloading your ${type} file...`);
+    // Refresh if generating
+    if (isGenerating && activeOrder?.id) {
+      const timer = setInterval(() => {
+        orderStore.fetchActiveOrder(activeOrder.id);
+      }, 5000);
+      return () => clearInterval(timer);
+    }
+  }, [isGenerating, activeOrder?.id]);
+
+  const handleDownload = (url: string | null, type: string) => {
+    if (!url) {
+      Alert.alert('Coming Soon', `Your ${type} file is being generated. Check back in a moment.`);
+      return;
+    }
+    Linking.openURL(url).catch(() => Alert.alert('Error', 'Could not open file.'));
   };
 
   const handleShareToPrinter = () => {
@@ -67,27 +88,31 @@ const SuccessScreen = () => {
         <View style={styles.downloadCard}>
           <Text style={styles.cardTitle}>Download Your Files</Text>
           
-          {files.map((file) => (
-            <View key={file} style={styles.fileRow}>
+          {fileLinks.map((f) => (
+            <View key={f.type} style={styles.fileRow}>
               <View style={styles.fileInfo}>
-                <Ionicons 
-                  name={file === 'PDF' ? "document-text" : "image"} 
-                  size={24} 
-                  color={colours.primary} 
-                />
+                <Ionicons name={f.icon} size={24} color={colours.primary} />
                 <View style={styles.fileTextContainer}>
-                  <Text style={styles.fileLabel}>{file} File</Text>
-                  <Text style={styles.fileSize}>2.4 MB</Text>
+                  <Text style={styles.fileLabel}>{f.type} File</Text>
+                  <Text style={styles.fileSize}>{f.url ? 'Ready' : isGenerating ? 'Generating...' : 'Pending'}</Text>
                 </View>
               </View>
-              <TouchableOpacity 
-                style={styles.downloadBtn}
-                onPress={() => handleDownload(file)}
+              <TouchableOpacity
+                style={[styles.downloadBtn, !f.url && { opacity: 0.5 }]}
+                onPress={() => handleDownload(f.url, f.type)}
               >
-                <Text style={styles.downloadBtnText}>Download</Text>
+                <Text style={styles.downloadBtnText}>{f.url ? 'Download' : '...'}</Text>
               </TouchableOpacity>
             </View>
           ))}
+
+          {isGenerating && (
+            <TouchableOpacity onPress={() => activeOrder?.id && orderStore.fetchActiveOrder(activeOrder.id)}>
+              <Text style={{ textAlign: 'center', color: colours.secondary, marginTop: 12, fontWeight: '600' }}>
+                Refresh Status
+              </Text>
+            </TouchableOpacity>
+          )}
 
           <TouchableOpacity 
             style={styles.sharePrinterBtn}

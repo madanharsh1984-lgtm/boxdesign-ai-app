@@ -26,6 +26,7 @@ import { formatINR, calcGST } from '@/utils/formatters';
 const PaymentScreen = () => {
   const router = useRouter();
   const designStore = useDesignStore();
+  const { user } = useAuthStore();
   const { request } = designStore;
   const [selectedTier, setSelectedTier] = useState<PricingTier>('standard');
   const [promoCode, setPromoCode] = useState('');
@@ -56,30 +57,85 @@ const PaymentScreen = () => {
   const handlePay = async () => {
     setLoading(true);
     try {
-      // Step 1: Create order on backend
+      // Step 1: Create order on backend — get Razorpay order ID
       const orderRes = await ordersApi.create({
         designRequestId: designStore.generationJobId || 'mock-design-001',
         selectedDesignId: designStore.selectedDesign?.id || 'mock-design-001',
         pricingTier: (selectedTier || 'standard').toLowerCase() as any,
-        promoCode: promoCode || undefined,
+        approvedByName: user?.contactName || user?.companyName || 'Customer',
+        promoCode: promoCode.trim() || undefined,
       });
-      const { order_id, razorpay_order_id } = orderRes.data;
 
-      // Step 2: Mock payment success (Phase 4 will integrate real Razorpay SDK)
-      // Simulate payment completion
-      const confirmRes = await ordersApi.confirmPayment({
+      const {
+        order_id,
+        razorpay_order_id,
+        total_amount_inr,
+        razorpay_key_id,
+        is_mock,
+      } = orderRes.data;
+
+      if (is_mock) {
+        // Dev mode: skip Razorpay sheet, confirm directly
+        await ordersApi.confirmPayment({
+          orderId: order_id,
+          razorpayOrderId: razorpay_order_id,
+          razorpayPaymentId: 'mock_pay_' + Date.now(),
+          razorpaySignature: 'mock_sig',
+        });
+        useOrderStore.getState().setActiveOrder({ id: order_id, status: 'generating' } as any);
+        router.replace('/(design)/success');
+        return;
+      }
+
+      // Step 2: Open Razorpay Checkout sheet
+      let RazorpayCheckout: any;
+      try {
+        RazorpayCheckout = require('react-native-razorpay').default;
+      } catch {
+        // Expo Go doesn't support native modules — fall back to mock
+        await ordersApi.confirmPayment({
+          orderId: order_id,
+          razorpayOrderId: razorpay_order_id,
+          razorpayPaymentId: 'mock_pay_expo_go_' + Date.now(),
+          razorpaySignature: 'mock_sig',
+        });
+        useOrderStore.getState().setActiveOrder({ id: order_id, status: 'generating' } as any);
+        router.replace('/(design)/success');
+        return;
+      }
+
+      const paymentData = await RazorpayCheckout.open({
+        key: razorpay_key_id,
+        amount: total_amount_inr * 100,  // paise
+        currency: 'INR',
+        name: 'BoxDesign AI',
+        description: `${selectedPlan.label} Design Package`,
+        order_id: razorpay_order_id,
+        prefill: {
+          name: user?.contactName || user?.companyName || '',
+          contact: user?.phone || '',
+        },
+        theme: { color: '#1A3C6E' },
+      });
+
+      // Step 3: Confirm payment on backend
+      await ordersApi.confirmPayment({
         orderId: order_id,
-        razorpayOrderId: razorpay_order_id,
-        razorpayPaymentId: 'mock_pay_' + Date.now(),
-        razorpaySignature: 'mock_sig',
+        razorpayOrderId: paymentData.razorpay_order_id,
+        razorpayPaymentId: paymentData.razorpay_payment_id,
+        razorpaySignature: paymentData.razorpay_signature,
       });
 
-      // Step 3: Navigate to success
+      useOrderStore.getState().setActiveOrder({ id: order_id, status: 'generating' } as any);
       router.replace('/(design)/success');
+
     } catch (err: any) {
-      console.warn('Payment failed, using dev bypass:', err?.message);
-      // Dev mode: navigate anyway
-      router.replace('/(design)/success');
+      if (err?.code === 'PAYMENT_CANCELLED' || err?.description?.includes('cancel')) {
+        Alert.alert('Payment Cancelled', 'You cancelled the payment. Try again when ready.');
+      } else {
+        console.warn('Payment error:', err?.message || err);
+        Alert.alert('Payment Failed', 'Something went wrong. Please try again.');
+      }
     } finally {
       setLoading(false);
     }

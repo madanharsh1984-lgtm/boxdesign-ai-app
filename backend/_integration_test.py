@@ -3,8 +3,16 @@ BoxDesign AI — Integration Test (in-process, no external server needed)
 Run: venv\Scripts\python.exe _integration_test.py
 """
 import sys, os, json, asyncio
+
+# MUST set DATABASE_URL before ANY app imports so SQLAlchemy picks it up
+TEST_DB = "sqlite:///./test_integration.db"
+os.environ["DATABASE_URL"] = TEST_DB          # force-override any shell env var
+
+# Remove stale DB from a previous failed run so schema is always fresh
+if os.path.exists("test_integration.db"):
+    os.remove("test_integration.db")
+
 sys.path.insert(0, '.')
-os.environ.setdefault("DATABASE_URL", "sqlite:///./test_integration.db")
 
 from fastapi.testclient import TestClient
 from main import app
@@ -159,9 +167,19 @@ failed = sum(1 for _, ok in results if not ok)
 print(f"  RESULTS: {passed} PASSED / {failed} FAILED / {len(results)} TOTAL")
 print("=" * 65)
 
-# Cleanup test DB
-import os as _os
-if _os.path.exists("test_integration.db"):
-    _os.remove("test_integration.db")
+# Cleanup test DB — dispose engine first so SQLite file is unlocked on Windows
+try:
+    from utils.db import engine as _engine
+    _engine.dispose()
+except Exception:
+    pass
+import os as _os, time as _time
+for _ in range(3):
+    try:
+        if _os.path.exists("test_integration.db"):
+            _os.remove("test_integration.db")
+        break
+    except PermissionError:
+        _time.sleep(0.5)
 
 sys.exit(0 if failed == 0 else 1)

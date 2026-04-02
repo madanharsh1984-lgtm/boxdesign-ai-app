@@ -55,6 +55,9 @@ export interface Order {
   approvedByName?: string;
   approvedAt?: string;
   files?: DeliveredFile[];
+  pdfUrl?: string;
+  pngUrl?: string;
+  cdrUrl?: string;
   createdAt: string;
   updatedAt: string;
 }

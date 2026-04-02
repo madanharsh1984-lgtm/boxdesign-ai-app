@@ -1,0 +1,36 @@
+declare module 'react-native-razorpay' {
+  interface RazorpayCheckoutOptions {
+    key: string;
+    amount: number;           // in paise
+    currency: string;
+    name: string;
+    description: string;
+    order_id: string;
+    prefill?: {
+      name?: string;
+      email?: string;
+      contact?: string;
+    };
+    theme?: {
+      color?: string;
+    };
+    notes?: Record<string, string>;
+  }
+
+  interface RazorpaySuccessResponse {
+    razorpay_payment_id: string;
+    razorpay_order_id: string;
+    razorpay_signature: string;
+  }
+
+  interface RazorpayFailureResponse {
+    code: number;
+    description: string;
+  }
+
+  const RazorpayCheckout: {
+    open(options: RazorpayCheckoutOptions): Promise<RazorpaySuccessResponse>;
+  };
+
+  export default RazorpayCheckout;
+}

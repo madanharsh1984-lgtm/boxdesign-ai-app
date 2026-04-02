@@ -140,7 +140,7 @@ def verify_payment_signature(razorpay_order_id: str, razorpay_payment_id: str, r
             RAZORPAY_KEY_SECRET.encode(),
             msg.encode(),
             hashlib.sha256
-        ).hexdigest()
+        ).hexdigest()  # hmac.new is the correct call: hmac.new(key, msg, digestmod)
         
         is_valid = hmac.compare_digest(expected, razorpay_signature)
         if not is_valid:

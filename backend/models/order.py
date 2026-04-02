@@ -6,9 +6,6 @@ from datetime import datetime
 import uuid
 import enum
 
-# Import design models to ensure SQLAlchemy mapper can resolve "DesignRequest" and "GeneratedDesign"
-from models.design import DesignRequest, GeneratedDesign  # noqa: F401
-
 class OrderStatus(str, enum.Enum):
     DRAFT = "draft"
     APPROVED = "approved"
@@ -30,8 +27,8 @@ class Order(Base):
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id = Column(String, ForeignKey("users.id"), nullable=False, index=True)
-    design_request_id = Column(String, ForeignKey("design_requests.id"), nullable=False)
-    selected_design_id = Column(String, ForeignKey("generated_designs.id"), nullable=True)
+    design_request_id = Column(String, nullable=True)
+    selected_design_id = Column(String, nullable=True)
     
     # Tier and Status
     pricing_tier = Column(Enum(PricingTier), default=PricingTier.STANDARD)
@@ -56,6 +53,7 @@ class Order(Base):
     pdf_url = Column(String(500), nullable=True)
     png_url = Column(String(500), nullable=True)
     cdr_url = Column(String(500), nullable=True) # Source CDR or high-res SVG
+    invoice_url = Column(String(500), nullable=True)
     files_expire_at = Column(DateTime, nullable=True)
     
     # Timestamps
@@ -64,5 +62,3 @@ class Order(Base):
 
     # Relationships
     user = relationship("User", backref="orders")
-    design_request = relationship("DesignRequest", backref="orders")
-    selected_design = relationship("GeneratedDesign", backref="orders")

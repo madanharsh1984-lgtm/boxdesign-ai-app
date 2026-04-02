@@ -4,6 +4,7 @@ import { apiClient } from './client';
 export interface CreateOrderPayload {
   designRequestId: string; selectedDesignId: string;
   pricingTier: string; promoCode?: string;
+  approvedByName?: string;
 }
 export interface ConfirmPaymentPayload {
   orderId: string; razorpayOrderId: string;
@@ -17,6 +18,7 @@ export const ordersApi = {
       selected_design_id: payload.selectedDesignId,
       pricing_tier: payload.pricingTier,
       promo_code: payload.promoCode,
+      approved_by_name: payload.approvedByName,
     }),
 
   confirmPayment: (payload: ConfirmPaymentPayload) =>

@@ -18,7 +18,29 @@ interface OrderStore {
   setSelectedTier: (tier: PricingTier | null)  => void;
   setPaymentLoading: (v: boolean)              => void;
   fetchOrders:     () => Promise<void>;
+  fetchActiveOrder: (orderId: string) => Promise<void>;
 }
+
+const mapOrder = (item: any): Order => ({
+  id: item.order_id || item.id,
+  userId: item.user_id,
+  designRequestId: item.design_request_id,
+  selectedDesignId: item.selected_design_id,
+  pricingTier: item.pricing_tier,
+  status: item.status,
+  totalAmountInr: item.total_amount_inr,
+  gstAmountInr: item.gst_amount_inr,
+  promoCode: item.promo_code,
+  discountInr: item.discount_inr,
+  paymentId: item.payment_id,
+  approvedByName: item.approved_by_name,
+  pdfUrl: item.pdf_url,
+  pngUrl: item.png_url,
+  cdrUrl: item.cdr_url,
+  files: item.files,
+  createdAt: item.created_at,
+  updatedAt: item.updated_at,
+});
 
 export const useOrderStore = create<OrderStore>((set) => ({
   orders:           [],
@@ -50,27 +72,23 @@ export const useOrderStore = create<OrderStore>((set) => ({
     try {
       const res = await ordersApi.list();
       const items = res.data?.items || res.data || [];
-      // Map backend snake_case to frontend camelCase
-      const mappedOrders: Order[] = items.map((item: any) => ({
-        id: item.order_id || item.id,
-        userId: item.user_id,
-        designRequestId: item.design_request_id,
-        selectedDesignId: item.selected_design_id,
-        pricingTier: item.pricing_tier,
-        status: item.status,
-        totalAmountInr: item.total_amount_inr,
-        gstAmountInr: item.gst_amount_inr,
-        promoCode: item.promo_code,
-        discountInr: item.discount_inr,
-        paymentId: item.payment_id,
-        createdAt: item.created_at,
-        updatedAt: item.updated_at,
-      }));
+      const mappedOrders: Order[] = items.map(mapOrder);
       set({ orders: mappedOrders });
     } catch (error) {
       console.warn('fetchOrders failed', error);
     } finally {
       set({ isLoading: false });
+    }
+  },
+
+  fetchActiveOrder: async (orderId: string) => {
+    try {
+      const res = await ordersApi.get(orderId);
+      if (res.data) {
+        set({ activeOrder: mapOrder(res.data) });
+      }
+    } catch (error) {
+      console.warn('fetchActiveOrder failed', error);
     }
   },
 }));
