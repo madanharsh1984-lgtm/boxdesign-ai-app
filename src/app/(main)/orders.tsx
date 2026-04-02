@@ -39,10 +39,22 @@ const OrdersScreen = () => {
     const loadOrders = async () => {
       try {
         const res = await ordersApi.list();
-        setOrders(res.data?.items || res.data || []);
+        const items = res.data?.items || res.data || [];
+        const mappedOrders = items.map((item: any) => ({
+          id: item.order_id || item.id,
+          status: item.status,
+          tier: item.pricing_tier,
+          amount: `₹${item.total_amount_inr}`,
+          date: new Date(item.created_at).toLocaleDateString('en-IN'),
+          pdf_url: item.pdf_url,
+          png_url: item.png_url,
+          cdr_url: item.cdr_url,
+          color: colours.secondary,
+        }));
+        setOrders(mappedOrders);
       } catch (err) {
-        console.warn('Could not load orders, using empty list:', err);
-        setOrders([]);
+        console.warn('Could not load orders, using mock data:', err);
+        setOrders(MOCK_ORDERS);
       } finally {
         setFetchLoading(false);
       }
@@ -83,7 +95,7 @@ const OrdersScreen = () => {
         <View style={styles.orderFooter}>
           <Text style={styles.orderAmount}>{item.amount}</Text>
           <View style={styles.actionRow}>
-            {item.status === 'Delivered' && (
+            {(item.status === 'Delivered' || item.status === 'completed' || item.pdf_url) && (
               <TouchableOpacity style={styles.iconBtn}>
                 <Ionicons name="download-outline" size={18} color={colours.primary} />
               </TouchableOpacity>
@@ -98,12 +110,11 @@ const OrdersScreen = () => {
   );
 
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Delivered': return '#27AE60';
-      case 'Approved': return '#2E86C1';
-      case 'Draft': return '#7F8C8D';
-      default: return '#F39C12';
-    }
+    const s = status?.toLowerCase() || '';
+    if (s.includes('deliver') || s.includes('complet') || s.includes('confirm')) return '#27AE60';
+    if (s.includes('approv') || s.includes('process')) return '#2E86C1';
+    if (s.includes('draft') || s.includes('pend')) return '#7F8C8D';
+    return '#F39C12';
   };
 
   return (

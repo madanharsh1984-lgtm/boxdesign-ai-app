@@ -70,17 +70,21 @@ const ProfileSetup = () => {
   const handleContinue = async () => {
     if (!validate()) return;
     setLoading(true);
+    const profileData = {
+      companyName: form.companyName,
+      contactName: form.contactName,
+      gstin: form.gstin,
+      city: form.city,
+      state: form.state,
+      logoUrl: logo || undefined,
+    };
     try {
-      await authApi.updateProfile({
-        companyName: form.companyName,
-        contactName: form.contactName,
-        gstin: form.gstin,
-        city: form.city,
-        state: form.state,
-      });
+      await authApi.updateProfile(profileData);
+      updateProfile(profileData);
       router.replace('/(auth)/brand-pattern');
     } catch (err: any) {
       console.warn('updateProfile failed, dev mode bypass:', err?.message);
+      updateProfile(profileData);
       router.replace('/(auth)/brand-pattern');
     } finally {
       setLoading(false);

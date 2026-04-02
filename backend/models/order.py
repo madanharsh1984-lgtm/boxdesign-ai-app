@@ -6,6 +6,9 @@ from datetime import datetime
 import uuid
 import enum
 
+# Import design models to ensure SQLAlchemy mapper can resolve "DesignRequest" and "GeneratedDesign"
+from models.design import DesignRequest, GeneratedDesign  # noqa: F401
+
 class OrderStatus(str, enum.Enum):
     DRAFT = "draft"
     APPROVED = "approved"

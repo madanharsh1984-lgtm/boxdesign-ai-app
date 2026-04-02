@@ -2,11 +2,11 @@
 import { apiClient } from './client';
 
 export interface SendOtpResponse { success: boolean; message: string; }
-export interface VerifyOtpResponse { token: string; userId: string; isNewUser: boolean; }
-export interface GoogleAuthResponse { token: string; userId: string; isNewUser: boolean; }
+export interface VerifyOtpResponse { access_token: string; userId: string; isNewUser: boolean; }
+export interface GoogleAuthResponse { access_token: string; userId: string; isNewUser: boolean; }
 export interface UpdateProfilePayload {
-  companyName: string; contactName: string; gstin?: string;
-  city: string; state: string; logoUrl?: string;
+  companyName?: string; contactName?: string; gstin?: string;
+  city?: string; state?: string; logoUrl?: string;
   brandColours?: string[]; brandPatternUrl?: string;
 }
 

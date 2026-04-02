@@ -16,6 +16,7 @@ import { colours } from '@/theme/colours';
 import { typography } from '@/theme/typography';
 import { spacing } from '@/theme/spacing';
 import { useDesignStore } from '@/store/designStore';
+import { useAuthStore } from '@/store/authStore';
 import { useOrderStore } from '@/store/orderStore';
 import { designApi } from '@/services/api/design';
 import { ordersApi } from '@/services/api/orders';
@@ -24,7 +25,8 @@ import { formatINR, calcGST } from '@/utils/formatters';
 
 const PaymentScreen = () => {
   const router = useRouter();
-  const { request } = useDesignStore();
+  const designStore = useDesignStore();
+  const { request } = designStore;
   const [selectedTier, setSelectedTier] = useState<PricingTier>('standard');
   const [promoCode, setPromoCode] = useState('');
   const [loading, setLoading] = useState(false);
@@ -54,35 +56,29 @@ const PaymentScreen = () => {
   const handlePay = async () => {
     setLoading(true);
     try {
-      // Fetch live price from backend
-      const priceRes = await designApi.calculatePrice(selectedTier, promoApplied ? promoCode : undefined);
-      const { total_inr } = priceRes.data;
-
-      // Create order
-      const { selectedDesign, generationJobId } = useDesignStore.getState();
+      // Step 1: Create order on backend
       const orderRes = await ordersApi.create({
-        designRequestId: generationJobId || 'dev-job',
-        selectedDesignId: selectedDesign?.id || 'dev-design',
-        pricingTier: selectedTier,
-        promoCode: promoApplied ? promoCode : undefined,
+        designRequestId: designStore.generationJobId || 'mock-design-001',
+        selectedDesignId: designStore.selectedDesign?.id || 'mock-design-001',
+        pricingTier: (selectedTier || 'standard').toLowerCase() as any,
+        promoCode: promoCode || undefined,
       });
-      const orderId = orderRes.data?.id || orderRes.data?.order_id || 'dev-order';
+      const { order_id, razorpay_order_id } = orderRes.data;
 
-      // For POC: skip Razorpay, go straight to success
-      Alert.alert(
-        'Complete Payment',
-        `Total: Rs.${total_inr} (${selectedTier})\n\nRazorpay live payment requires RAZORPAY_KEY_ID in .env`,
-        [
-          {
-            text: 'Mock Success (POC)',
-            onPress: () => router.replace('/(design)/success'),
-          },
-          { text: 'Cancel', style: 'cancel' },
-        ]
-      );
+      // Step 2: Mock payment success (Phase 4 will integrate real Razorpay SDK)
+      // Simulate payment completion
+      const confirmRes = await ordersApi.confirmPayment({
+        orderId: order_id,
+        razorpayOrderId: razorpay_order_id,
+        razorpayPaymentId: 'mock_pay_' + Date.now(),
+        razorpaySignature: 'mock_sig',
+      });
+
+      // Step 3: Navigate to success
+      router.replace('/(design)/success');
     } catch (err: any) {
-      console.warn('Payment error:', err?.message);
-      // Dev fallback
+      console.warn('Payment failed, using dev bypass:', err?.message);
+      // Dev mode: navigate anyway
       router.replace('/(design)/success');
     } finally {
       setLoading(false);

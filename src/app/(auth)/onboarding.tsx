@@ -17,9 +17,11 @@ import { typography } from '@/theme/typography';
 import { spacing } from '@/theme/spacing';
 import { useAuthStore } from '@/store/authStore';
 import { authApi } from '@/services/api/auth';
+import { apiClient } from '@/services/api/client';
 
 const Onboarding = () => {
   const router = useRouter();
+  const { setUser } = useAuthStore();
   const [activeTab, setActiveTab] = useState<'signup' | 'login'>('signup');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [otpSent, setOtpSent] = useState(false);
@@ -71,8 +73,12 @@ const Onboarding = () => {
     setLoading(true);
     try {
       const res = await authApi.verifyOtp(`+91${phoneNumber}`, fullOtp);
-      const { setUser } = useAuthStore.getState();
-      setUser({ id: res.data.userId, phone: `+91${phoneNumber}` } as any, res.data.token);
+      const token = res.data.access_token;
+      setUser({ id: res.data.userId, phone: `+91${phoneNumber}` } as any, token);
+      
+      // Update apiClient headers
+      apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
       if (res.data.isNewUser) {
         router.replace('/(auth)/profile-setup');
       } else {
@@ -81,8 +87,9 @@ const Onboarding = () => {
     } catch (err: any) {
       console.warn('verifyOtp failed, using dev mode bypass:', err?.message);
       // Dev mode: any 6-digit OTP works
-      const { setUser } = useAuthStore.getState();
-      setUser({ id: 'dev-user-001', phone: `+91${phoneNumber}` } as any, 'dev-token-123');
+      const devToken = 'dev-token-123';
+      setUser({ id: 'dev-user-001', phone: `+91${phoneNumber}` } as any, devToken);
+      apiClient.defaults.headers.common['Authorization'] = `Bearer ${devToken}`;
       router.replace('/(auth)/profile-setup');
     } finally {
       setLoading(false);

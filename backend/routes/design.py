@@ -4,9 +4,13 @@ import uuid
 import tempfile
 import shutil
 import logging
-from fastapi import APIRouter, UploadFile, File, BackgroundTasks, HTTPException
+from fastapi import APIRouter, UploadFile, File, BackgroundTasks, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Optional, List
+from sqlalchemy.orm import Session
+from utils.db import get_db
+from utils.auth_utils import get_current_user, get_optional_user
+from models.user import User
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -84,12 +88,16 @@ async def run_generation_pipeline(job_id: str, request: DesignRequest):
 async def generate_designs(
     background_tasks: BackgroundTasks,
     request: DesignRequest,
+    current_user: User = Depends(get_current_user),
 ):
     """
     Queue an AI generation job. Returns job_id — poll /status/{job_id} every 2s.
     Runs: web_research → design_generator (10 themes via DALL-E 3 / mock)
     """
     job_id = str(uuid.uuid4())
+    # Add user context to job tracking
+    from services.design_generator import JOBS
+    JOBS[job_id] = {"user_id": current_user.id, "status": "queued"}
     background_tasks.add_task(run_generation_pipeline, job_id, request)
     return GenerationJobResponse(job_id=job_id, status="queued", estimated_seconds=45)
 
