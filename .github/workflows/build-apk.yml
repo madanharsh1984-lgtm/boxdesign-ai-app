@@ -39,14 +39,21 @@ jobs:
         env:
           EXPO_NO_GIT_STATUS: 1
 
-      - name: Bundle JS into assets (standalone — no Metro needed)
+      - name: Create assets directory
+        run: mkdir -p android/app/src/main/assets
+
+      - name: Bundle JS into APK (standalone — no Metro needed)
         run: |
           npx react-native bundle \
             --platform android \
             --dev false \
-            --entry-file node_modules/expo/AppEntry.js \
+            --entry-file node_modules/expo-router/entry.js \
             --bundle-output android/app/src/main/assets/index.android.bundle \
-            --assets-dest android/app/src/main/res
+            --assets-dest android/app/src/main/res \
+            --reset-cache
+        env:
+          NODE_ENV: production
+          EXPO_ROUTER_APP_ROOT: src/app
 
       - name: Make Gradlew executable
         run: chmod +x android/gradlew
