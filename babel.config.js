@@ -19,9 +19,7 @@ module.exports = function (api) {
           },
         },
       ],
-      // Required for Expo Router
-      'expo-router/babel',
-      // Required for React Native Reanimated (must be last)
+      // 'expo-router/babel' is removed as it's deprecated in SDK 50
       'react-native-reanimated/plugin',
     ],
   };

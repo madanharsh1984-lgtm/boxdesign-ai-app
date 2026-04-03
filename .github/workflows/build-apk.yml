@@ -27,11 +27,7 @@ jobs:
           distribution: 'temurin'
 
       - name: Install dependencies
-        run: |
-          npm install --legacy-peer-deps
-          npm install babel-plugin-module-resolver --save-dev --legacy-peer-deps
-          npm install expo-modules-autolinking@1.11.3 --save-exact --legacy-peer-deps
-          npm install @expo/prebuild-config@7.0.7 --save-exact --legacy-peer-deps
+        run: npm install --legacy-peer-deps
 
       - name: Generate Android native project
         run: npx expo prebuild --platform android --clean --no-install
@@ -50,7 +46,14 @@ jobs:
             --assets-dest android/app/src/main/res \
             --dev false \
             --reset-cache
-          echo "Bundle: $(ls -lh android/app/src/main/assets/index.android.bundle)"
+          
+          echo "Checking bundle file..."
+          if [ -f "android/app/src/main/assets/index.android.bundle" ]; then
+            echo "Bundle found: $(ls -lh android/app/src/main/assets/index.android.bundle)"
+          else
+            echo "ERROR: Bundle file not found at android/app/src/main/assets/index.android.bundle"
+            exit 1
+          fi
         env:
           NODE_ENV: production
           EXPO_ROUTER_APP_ROOT: src/app
@@ -76,6 +79,8 @@ jobs:
         run: ./gradlew assembleDebug --no-daemon
         env:
           GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.parallel=false"
+          NODE_ENV: production
+          EXPO_ROUTER_APP_ROOT: src/app
 
       - name: List APK output
         run: find android/app/build/outputs/apk -name "*.apk" -exec ls -lh {} \;
