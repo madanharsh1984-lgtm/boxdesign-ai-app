@@ -39,6 +39,33 @@ jobs:
         env:
           EXPO_NO_GIT_STATUS: 1
 
+      - name: Create assets directory
+        run: mkdir -p android/app/src/main/assets
+
+      - name: Bundle JS with Metro (standalone — no dev server needed)
+        run: |
+          node node_modules/react-native/local-cli/cli.js bundle \
+            --platform android \
+            --dev false \
+            --entry-file index.js \
+            --bundle-output android/app/src/main/assets/index.android.bundle \
+            --assets-dest android/app/src/main/res \
+            --config metro.config.js \
+            --reset-cache 2>/dev/null || \
+          npx react-native bundle \
+            --platform android \
+            --dev false \
+            --entry-file index.js \
+            --bundle-output android/app/src/main/assets/index.android.bundle \
+            --assets-dest android/app/src/main/res \
+            --config metro.config.js \
+            --reset-cache
+          echo "--- Bundle result ---"
+          ls -lh android/app/src/main/assets/index.android.bundle
+        env:
+          NODE_ENV: production
+          EXPO_ROUTER_APP_ROOT: src/app
+
       - name: Make Gradlew executable
         run: chmod +x android/gradlew
 
@@ -54,17 +81,11 @@ jobs:
           key: gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: gradle-
 
-      # Let Gradle + React Native plugin handle bundling automatically
-      # BUNDLING_SKIP=false forces it to bundle JS at build time (no Metro)
-      - name: Build standalone Debug APK (Gradle auto-bundles JS)
+      - name: Build standalone Debug APK
         working-directory: android
-        run: |
-          ./gradlew assembleDebug \
-            -PbundleInDebug=true \
-            --no-daemon
+        run: ./gradlew assembleDebug --no-daemon
         env:
           GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.parallel=false"
-          NODE_PATH: ${{ github.workspace }}/node_modules
 
       - name: List APK output
         run: find android/app/build/outputs/apk -name "*.apk" -exec ls -lh {} \;
