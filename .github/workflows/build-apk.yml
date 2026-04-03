@@ -26,11 +26,10 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Install dependencies (clean)
-        run: npm ci
-
-      - name: Fix expo-modules-autolinking compatibility
+      - name: Install dependencies
         run: |
+          npm install --legacy-peer-deps
+          npm install babel-plugin-module-resolver --save-dev --legacy-peer-deps
           npm install expo-modules-autolinking@1.11.3 --save-exact --legacy-peer-deps
           npm install @expo/prebuild-config@7.0.7 --save-exact --legacy-peer-deps
 
