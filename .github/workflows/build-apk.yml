@@ -39,19 +39,23 @@ jobs:
         env:
           EXPO_NO_GIT_STATUS: 1
 
+      - name: Verify entry file exists
+        run: |
+          echo "=== Checking entry files ==="
+          ls -la index.js metro.config.js || true
+          cat index.js
+          cat metro.config.js
+          echo "=== node_modules/.bin/react-native ==="
+          ls -la node_modules/.bin/react-native || true
+          echo "=== npx react-native version ==="
+          npx react-native --version || true
+
       - name: Create assets directory
         run: mkdir -p android/app/src/main/assets
 
-      - name: Bundle JS with Metro (standalone — no dev server needed)
+      - name: Bundle JS with Metro
         run: |
-          node node_modules/react-native/local-cli/cli.js bundle \
-            --platform android \
-            --dev false \
-            --entry-file index.js \
-            --bundle-output android/app/src/main/assets/index.android.bundle \
-            --assets-dest android/app/src/main/res \
-            --config metro.config.js \
-            --reset-cache 2>/dev/null || \
+          set -x
           npx react-native bundle \
             --platform android \
             --dev false \
@@ -60,11 +64,12 @@ jobs:
             --assets-dest android/app/src/main/res \
             --config metro.config.js \
             --reset-cache
-          echo "--- Bundle result ---"
+          echo "=== Bundle size ==="
           ls -lh android/app/src/main/assets/index.android.bundle
         env:
           NODE_ENV: production
           EXPO_ROUTER_APP_ROOT: src/app
+          CI: true
 
       - name: Make Gradlew executable
         run: chmod +x android/gradlew
