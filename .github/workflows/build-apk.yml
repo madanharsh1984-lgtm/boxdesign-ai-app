@@ -34,25 +34,10 @@ jobs:
           npm install expo-modules-autolinking@1.11.3 --save-exact --legacy-peer-deps
           npm install @expo/prebuild-config@7.0.7 --save-exact --legacy-peer-deps
 
-      - name: Generate Android native project (with bundled JS)
+      - name: Generate Android native project
         run: npx expo prebuild --platform android --clean --no-install
         env:
           EXPO_NO_GIT_STATUS: 1
-
-      - name: Export JS bundle via Expo (standalone)
-        run: |
-          mkdir -p android/app/src/main/assets
-          npx expo export \
-            --platform android \
-            --output-dir dist \
-            --no-minify
-          cp dist/_expo/static/js/android/*.js android/app/src/main/assets/index.android.bundle 2>/dev/null || \
-          cp dist/bundles/android-*.js android/app/src/main/assets/index.android.bundle 2>/dev/null || \
-          find dist -name "*.js" | head -1 | xargs -I{} cp {} android/app/src/main/assets/index.android.bundle
-          echo "Bundle size: $(ls -lh android/app/src/main/assets/index.android.bundle)"
-        env:
-          NODE_ENV: production
-          EXPO_ROUTER_APP_ROOT: src/app
 
       - name: Make Gradlew executable
         run: chmod +x android/gradlew
@@ -69,11 +54,17 @@ jobs:
           key: gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: gradle-
 
-      - name: Build standalone Debug APK
+      # Let Gradle + React Native plugin handle bundling automatically
+      # BUNDLING_SKIP=false forces it to bundle JS at build time (no Metro)
+      - name: Build standalone Debug APK (Gradle auto-bundles JS)
         working-directory: android
-        run: ./gradlew assembleDebug --no-daemon
+        run: |
+          ./gradlew assembleDebug \
+            -PbundleInDebug=true \
+            --no-daemon
         env:
           GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.parallel=false"
+          NODE_PATH: ${{ github.workspace }}/node_modules
 
       - name: List APK output
         run: find android/app/build/outputs/apk -name "*.apk" -exec ls -lh {} \;
