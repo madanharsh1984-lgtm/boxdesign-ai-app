@@ -3,7 +3,7 @@ name: Build Android APK
 on:
   push:
     branches: [ main ]
-  workflow_dispatch:   # allows you to trigger manually from GitHub UI with one click
+  workflow_dispatch:
 
 jobs:
   build:
@@ -17,7 +17,7 @@ jobs:
       - name: Setup Node.js 20
         uses: actions/setup-node@v4
         with:
-          node-version: '20.x'
+          node-version: '20.19.4'
           cache: 'npm'
 
       - name: Setup Java 17
@@ -26,44 +26,44 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Install dependencies (clean)
+        run: npm ci
 
-      - name: Install dependencies
-        run: npm install
+      - name: Fix expo-modules-autolinking compatibility
+        run: |
+          npm install expo-modules-autolinking@1.11.3 --save-exact --legacy-peer-deps
+          npm install @expo/prebuild-config@7.0.7 --save-exact --legacy-peer-deps
 
-      - name: Setup Expo
-        run: npx expo install --fix
-
-      - name: Generate Android project
-        run: npx expo prebuild --platform android --clean
+      - name: Generate Android native project
+        run: |
+          npx expo prebuild --platform android --clean --no-install
+        env:
+          EXPO_NO_GIT_STATUS: 1
 
       - name: Make Gradlew executable
         run: chmod +x android/gradlew
 
-      - name: Build APK
-        working-directory: android
-        run: ./gradlew assembleRelease --no-daemon
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: gradle-
 
-      - name: Sign APK (debug keystore for UAT)
+      - name: Build Release APK
         working-directory: android
-        run: |
-          jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 \
-            -keystore ~/.android/debug.keystore \
-            -storepass android \
-            -keypass android \
-            app/build/outputs/apk/release/app-release-unsigned.apk \
-            androiddebugkey -signedjar app/build/outputs/apk/release/app-release-signed.apk
+        run: ./gradlew assembleRelease --no-daemon --stacktrace
+        env:
+          GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.parallel=false"
 
-      - name: Upload APK as artifact
+      - name: List APK output
+        run: find android/app/build/outputs/apk -name "*.apk" -exec ls -lh {} \;
+
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: BoxDesignAI-UAT-v1.0.apk
-          path: |
-            android/app/build/outputs/apk/release/*.apk
+          name: BoxDesignAI-UAT-v1.0
+          path: android/app/build/outputs/apk/release/app-release-unsigned.apk
           retention-days: 30
-
-      - name: Show APK info
-        run: |
-          echo "Build complete!"
-          find android/app/build/outputs/apk -name "*.apk" -exec ls -lh {} \;
