@@ -35,13 +35,24 @@ jobs:
           npm install @expo/prebuild-config@7.0.7 --save-exact --legacy-peer-deps
 
       - name: Generate Android native project
-        run: |
-          npx expo prebuild --platform android --clean --no-install
+        run: npx expo prebuild --platform android --clean --no-install
         env:
           EXPO_NO_GIT_STATUS: 1
 
+      - name: Bundle JS into assets (standalone — no Metro needed)
+        run: |
+          npx react-native bundle \
+            --platform android \
+            --dev false \
+            --entry-file node_modules/expo/AppEntry.js \
+            --bundle-output android/app/src/main/assets/index.android.bundle \
+            --assets-dest android/app/src/main/res
+
       - name: Make Gradlew executable
         run: chmod +x android/gradlew
+
+      - name: Set ANDROID_SDK_ROOT for Gradle
+        run: echo "sdk.dir=$ANDROID_SDK_ROOT" > android/local.properties
 
       - name: Cache Gradle packages
         uses: actions/cache@v4
@@ -52,12 +63,9 @@ jobs:
           key: gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: gradle-
 
-      - name: Set ANDROID_SDK_ROOT for Gradle
-        run: echo "sdk.dir=$ANDROID_SDK_ROOT" > android/local.properties
-
-      - name: Build Debug APK (UAT)
+      - name: Build standalone Debug APK
         working-directory: android
-        run: ./gradlew assembleDebug --no-daemon --stacktrace
+        run: ./gradlew assembleDebug --no-daemon
         env:
           GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.parallel=false"
 
@@ -67,6 +75,6 @@ jobs:
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: BoxDesignAI-UAT-v1.0
+          name: BoxDesignAI-Standalone-v1.0
           path: android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
