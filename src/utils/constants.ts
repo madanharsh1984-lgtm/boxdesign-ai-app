@@ -1,9 +1,18 @@
 // ─── BoxDesign AI — App-wide Constants ───────────────────────────────────────
 
+import { Platform } from 'react-native';
+
 export const APP_NAME    = 'BoxDesign AI';
 export const APP_VERSION = '1.0.0';
 
-export const API_BASE_URL  = process.env.EXPO_PUBLIC_API_BASE_URL ?? 'http://localhost:8000';
+// On Android emulators (like BlueStacks or standard AVD), 10.0.2.2 points to the host machine's localhost.
+const DEFAULT_API_URL = Platform.select({
+  android: 'http://10.0.2.2:8000',
+  ios: 'http://localhost:8000',
+  default: 'http://localhost:8000',
+});
+
+export const API_BASE_URL  = process.env.EXPO_PUBLIC_API_BASE_URL ?? DEFAULT_API_URL;
 export const API_VERSION   = process.env.EXPO_PUBLIC_API_VERSION  ?? 'v1';
 export const RAZORPAY_KEY  = process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID ?? '';
 

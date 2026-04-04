@@ -58,6 +58,7 @@ jobs:
           NODE_ENV: production
           EXPO_ROUTER_APP_ROOT: src/app
           CI: true
+          EXPO_PUBLIC_API_BASE_URL: ${{ secrets.EXPO_PUBLIC_API_BASE_URL || 'http://192.168.29.9:8000' }}
 
       - name: Make Gradlew executable
         run: chmod +x android/gradlew
@@ -81,6 +82,7 @@ jobs:
           GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.parallel=false"
           NODE_ENV: production
           EXPO_ROUTER_APP_ROOT: src/app
+          EXPO_PUBLIC_API_BASE_URL: ${{ secrets.EXPO_PUBLIC_API_BASE_URL || 'http://192.168.29.9:8000' }}
 
       - name: List APK output
         run: find android/app/build/outputs/apk -name "*.apk" -exec ls -lh {} \;
