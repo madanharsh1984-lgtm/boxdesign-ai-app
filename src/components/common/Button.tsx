@@ -88,7 +88,7 @@ const Button: React.FC<ButtonProps> = ({
 
   return (
     <TouchableOpacity
-      onPress={onPress}
+      onPress={handlePress}
       disabled={disabled || loading}
       style={[
         styles.base,
@@ -115,6 +115,23 @@ const styles = StyleSheet.create({
   base: {
     borderRadius: borderRadius.lg,
     flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fullWidth: {
+    width: '100%',
+  },
+  disabled: {
+    opacity: 0.5,
+  },
+  text: {
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+});
+
+export default Button;
+ow',
     alignItems: 'center',
     justifyContent: 'center',
   },

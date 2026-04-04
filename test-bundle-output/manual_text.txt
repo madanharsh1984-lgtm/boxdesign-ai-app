@@ -1,0 +1,39 @@
+BoxDesign AI
+Functional Testing & User Execution Manual (UAT)
+This manual provides step-by-step instructions for testers to validate the end-to-end
+functionality of the BoxDesign AI mobile application. Red highlighted boxes and
+numbers correspond to the required actions.
+1. Authentication & Onboarding
+Step 1: Enter your mobile number in the phone input field.
+Step 2: Click the 'Send OTP' button.
+Step 3: Enter the received OTP (for testing, use any 6-digit number like 123456) and
+click 'Verify & Login'.
+
+2. Dashboard & Initiating Design
+Step 4: On the Dashboard, verify that your order statistics load correctly. Click the
+orange '+ NEW DESIGN' button to start a new packaging workflow.
+3. Design Input: Dimensions
+Step 5: Select the desired 'Box Style' (e.g., RSC or Die-Cut).
+Step 6: Enter the exact Length, Width, and Height in millimeters.
+Step 7: Click 'Next: Photo' to proceed.
+4. Design Input: Product Photography
+Step 8: Click 'Open Camera' to take a live photo of the product, or choose 'Upload
+from Gallery'. Verify that the image appears in the preview box.
+Step 9: Click 'Next: Brand Details'.
+5. Design Input: Branding & Generation
+Step 10: Enter the 'Brand Name' and 'Product Type'.
+Step 11: Click the 'GENERATE DESIGNS' button. The app will transition to a loading
+screen for 10-20 seconds while the AI builds 10 unique themes.
+6. Gallery & 3D Preview Review
+Step 12: Tap on any of the generated design thumbnails to view it in full screen and
+interact with the 3D model.
+Step 13: Once satisfied with a design, select it and click 'Approve Selected'.
+7. Checkout & Payment
+Step 14: Review the pricing tiers (Basic, Standard, Premium). Select a tier.
+Step 15: Review the GST calculation, then click 'Pay via Razorpay' to open the secure
+payment gateway.
+8. Delivery & Export
+Step 16: Upon successful payment, the Success Screen appears. Click 'Download
+PDF (Print)' to verify the file downloads successfully to your device.
+Step 17: Click 'Share to WhatsApp' to test the deep-linking sharing capability with your
+printer or team.
