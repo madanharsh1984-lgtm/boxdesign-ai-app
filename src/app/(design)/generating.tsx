@@ -163,6 +163,9 @@ const GeneratingScreen = () => {
           <View style={styles.progressTrack}>
             <Animated.View style={[styles.progressBar, { width: progressWidth }]} />
           </View>
+          <Text style={styles.whatsappNote}>
+            You can safely close the app. We'll notify you on WhatsApp when ready!
+          </Text>
         </View>
         <View style={styles.factCard}>
           <Text style={styles.factText}>{FUN_FACTS[currentFactIndex]}</Text>
@@ -231,6 +234,14 @@ const styles = StyleSheet.create({
   progressBar: {
     height: '100%',
     backgroundColor: '#E67E22',
+  },
+  whatsappNote: {
+    marginTop: 15,
+    fontSize: 12,
+    color: '#AED6F1',
+    fontStyle: 'italic',
+    textAlign: 'center',
+    paddingHorizontal: 40,
   },
   factCard: {
     backgroundColor: '#FFFFFF',
